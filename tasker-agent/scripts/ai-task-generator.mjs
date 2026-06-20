@@ -46,7 +46,9 @@ if (findings.length === 0) {
 const existingData = await loadJsonSafe(path.join(root, tasksFilename));
 const completedSet = new Set(existingData?.completed ?? []);
 
-const pendingFindings = findings.filter((_, i) => !completedSet.has(i + 1));
+const pendingFindings = findings
+  .map((f, i) => ({ ...f, originalIndex: i + 1 }))
+  .filter((f) => !completedSet.has(f.originalIndex));
 
 if (completedSet.size > 0) {
   const skipped = findings.length - pendingFindings.length;
@@ -150,9 +152,9 @@ function stripHtml(text) {
 
 function generateLocalTasks(findings) {
   const fileGroups = new Map();
-  findings.forEach((f, i) => {
+  findings.forEach((f) => {
     if (!fileGroups.has(f.file)) fileGroups.set(f.file, []);
-    fileGroups.get(f.file).push({ ...f, index: i + 1 });
+    fileGroups.get(f.file).push(f);
   });
 
   const tasks = [];
@@ -193,7 +195,7 @@ function generateLocalTasks(findings) {
         files: [file],
         description: desc.substring(0, 200),
         why: `Found ${catFindings.length} issue(s) of type ${category} in ${file}`,
-        findings: catFindings.map((f) => f.index),
+        findings: catFindings.map((f) => f.originalIndex),
       });
     }
   }
@@ -205,8 +207,8 @@ function generateLocalTasks(findings) {
 }
 
 async function callLLM({ apiKey, baseUrl, model, instructions, findings }) {
-  const findingsText = findings.map((f, i) =>
-    `[${i + 1}] Severity: ${f.severity} | Category: ${f.category} | File: ${f.file} | Lines: ${f.lines}\n    Issue: ${f.issue}\n    Fix: ${f.recommendation}`
+  const findingsText = findings.map((f) =>
+    `[${f.originalIndex}] Severity: ${f.severity} | Category: ${f.category} | File: ${f.file} | Lines: ${f.lines}\n    Issue: ${f.issue}\n    Fix: ${f.recommendation}`
   ).join("\n\n");
 
   const userMessage = lang === "id"
@@ -287,7 +289,7 @@ function printTaskList(tasks, findings) {
 
     if (task.findings.length <= 5) {
       for (const fi of task.findings) {
-        const f = findings[fi - 1];
+        const f = findings.find((pf) => pf.originalIndex === fi);
         if (f) console.log(`    \x1b[2m  • [${f.severity}] ${f.issue}\x1b[0m`);
       }
     }
@@ -314,7 +316,7 @@ async function runFixerForTasks(tasks, contextFindings) {
         continue;
       }
 
-      const fileFindings = contextFindings.filter((_, i) => task.findings.includes(i + 1) && contextFindings[i].file === file);
+      const fileFindings = contextFindings.filter((f) => task.findings.includes(f.originalIndex) && f.file === file);
       if (fileFindings.length === 0) continue;
 
       const reportContent = buildMinimalReport(fileFindings);
