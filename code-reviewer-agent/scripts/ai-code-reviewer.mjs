@@ -80,6 +80,10 @@ const model = process.env.CODE_REVIEW_MODEL ?? "gpt-5";
 const baseUrl = process.env.CODE_REVIEW_BASE_URL ?? process.env.OPENAI_BASE_URL ?? "https://api.openai.com/v1";
 const input = createReviewInput(snapshot);
 
+const projectTree = buildProjectTree(snapshot.files.map((f) => f.relativePath));
+const configFiles = await readConfigFiles(root, snapshot.files.map((f) => f.relativePath));
+const configContext = `## Project Structure\n\`\`\`\n${projectTree}\n\`\`\`\n${configFiles}\n---\n`;
+
 let scanContext = "";
 if (process.env.AI_REVIEW_SKIP_SCAN !== "1" && scanProject) try {
   const scanResult = await scanProject(root);
@@ -95,7 +99,7 @@ if (process.env.AI_REVIEW_SKIP_SCAN !== "1" && scanProject) try {
   // scan-agent not available, continue without local context
 }
 
-const finalInput = input + scanContext;
+const finalInput = configContext + input + scanContext;
 
 const loader = new Loader("review");
 loader.start(`${snapshot.files.length} files`);
@@ -265,6 +269,49 @@ function addLineNumbers(content) {
     .split(/\r?\n/)
     .map((line, index) => `${String(index + 1).padStart(5, " ")} | ${line}`)
     .join("\n");
+}
+
+function buildProjectTree(allFiles) {
+  const tree = {};
+  for (const f of allFiles) {
+    const parts = f.split("/");
+    let node = tree;
+    for (let i = 0; i < parts.length; i++) {
+      if (i === parts.length - 1) {
+        node[parts[i]] = null;
+      } else {
+        if (!node[parts[i]]) node[parts[i]] = {};
+        node = node[parts[i]];
+      }
+    }
+  }
+
+  const lines = [];
+  function print(node, prefix) {
+    const keys = Object.keys(node).sort();
+    for (let i = 0; i < keys.length; i++) {
+      const key = keys[i];
+      const isLast = i === keys.length - 1;
+      lines.push(prefix + (isLast ? "└── " : "├── ") + key + (node[key] ? "/" : ""));
+      if (node[key]) print(node[key], prefix + (isLast ? "    " : "│   "));
+    }
+  }
+  print(tree, "");
+  return lines.join("\n");
+}
+
+const configFileNames = new Set(["package.json", "tsconfig.json", "go.mod", "go.sum", "pubspec.yaml", "Cargo.toml", "composer.json", "Gemfile", "Makefile", "Dockerfile", ".env.example"]);
+async function readConfigFiles(baseDir, allFiles) {
+  const parts = [];
+  for (const f of allFiles) {
+    const name = f.split("/").pop();
+    if (!configFileNames.has(name)) continue;
+    try {
+      const content = await readFile(path.join(baseDir, f), "utf8");
+      parts.push(`### ${f}\n\`\`\`\n${content.trim()}\n\`\`\``);
+    } catch { /* skip unreadable */ }
+  }
+  return parts.length > 0 ? `## Key Config Files\n${parts.join("\n\n")}\n\n` : "";
 }
 
 async function callOpenAICompatible({ apiKey, baseUrl, model, instructions, input, loader }) {
