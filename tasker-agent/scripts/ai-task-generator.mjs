@@ -71,7 +71,9 @@ const selectedIds = taskSelect ? taskSelect.split(",").map(Number).filter((n) =>
 
 let tasks;
 
-if (dryRun && !selectedIds) {
+if (applyFixes && existingData?.tasks) {
+  tasks = existingData;
+} else if (dryRun && !selectedIds) {
   tasks = generateLocalTasks(pendingFindings);
 } else {
   const loader = new Loader("task");
