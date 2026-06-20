@@ -140,7 +140,7 @@ export class AgentRunner {
 
         if ((err as any).code === "ENOENT") {
           this.outputChannel.appendLine(
-            `  → Agent '${agent}' is not installed globally. Run: npm install -g D:\\Puninar\\${agent}-agent`
+            `  → Agent '${agent}' is not installed globally. Run: npm install -g ./${agent}-agent`
           );
         }
 

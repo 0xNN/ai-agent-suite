@@ -5,7 +5,7 @@ AI agent untuk otomatis memperbaiki kode berdasarkan hasil review dari `code-rev
 ## Setup
 
 ```bash
-cd D:\Puninar\fixer-agent
+cd fixer-agent
 npm install
 npm install -g .
 ```
@@ -38,7 +38,7 @@ fixer-agent --apply --report=ai-review-report-2026-06-17T05-00-00-000Z.md
 fixer-agent --dry-run
 
 # Path spesifik
-fixer-agent --path=D:\Puninar\tms_billing
+fixer-agent --path=./my-project
 ```
 
 Alur: baca report → parse findings → kirim file + issue ke LLM → tampilkan diff → apply jika `--apply`.

@@ -21,7 +21,7 @@ Local code scanner — 100% offline, no AI, no API key. Detects common code issu
 ## Setup
 
 ```bash
-cd D:\Puninar\scan-agent
+cd scan-agent
 npm install
 npm install -g .
 ```
@@ -33,7 +33,7 @@ npm install -g .
 scan-agent
 
 # Scan specific path
-scan-agent --path=D:\Puninar\tms_billing
+scan-agent --path=./my-project
 
 # Quiet mode (only write report file, no console output)
 scan-agent --quiet

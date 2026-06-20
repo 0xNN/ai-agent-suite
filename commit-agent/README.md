@@ -5,7 +5,7 @@ AI agent untuk generate Conventional Commit message dari git diff.
 ## Setup
 
 ```bash
-cd D:\Puninar\commit-agent
+cd commit-agent
 npm install
 npm install -g .
 ```

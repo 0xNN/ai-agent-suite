@@ -1,6 +1,6 @@
 # AI Code Agents — VS Code Extension
 
-Integrates all 8 Puninar AI agents directly into VS Code.
+Integrates all 8 AI agents directly into VS Code.
 
 ## Features
 
@@ -25,14 +25,14 @@ Findings appear in the **Problems panel** (Errors/Warnings) — exactly like ESL
 ### Install all agents
 
 ```bash
-cd D:\Puninar\scan-agent        && npm install -g .
-cd D:\Puninar\code-reviewer-agent && npm install -g .
-cd D:\Puninar\diff-reviewer-agent && npm install -g .
-cd D:\Puninar\tasker-agent      && npm install -g .
-cd D:\Puninar\fixer-agent       && npm install -g .
-cd D:\Puninar\test-agent        && npm install -g .
-cd D:\Puninar\commit-agent      && npm install -g .
-cd D:\Puninar\orchestrator-agent && npm install -g .
+cd scan-agent              && npm install -g .
+cd code-reviewer-agent     && npm install -g .
+cd diff-reviewer-agent     && npm install -g .
+cd tasker-agent            && npm install -g .
+cd fixer-agent             && npm install -g .
+cd test-agent              && npm install -g .
+cd commit-agent            && npm install -g .
+cd orchestrator-agent      && npm install -g .
 ```
 
 ## Setup
@@ -110,7 +110,7 @@ ai-code-agents/
 
 | Symptom | Fix |
 |---|---|
-| "Agent not found" | Run `npm install -g D:\\Puninar\\{agent}` |
+| "Agent not found" | Run `npm install -g ./{agent}` from repo root |
 | No diagnostics after review | Ensure `"aiCodeAgents.showDiagnostics": true` |
 | Node.js errors | Install Node.js 18+ from nodejs.org |
 | API errors | Check API key in settings or `.env` |

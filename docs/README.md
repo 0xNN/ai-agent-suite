@@ -1,4 +1,4 @@
-# Puninar AI Agent Suite
+# AI Agent Suite
 
 Suite of CLI agents + VS Code extension for AI-assisted code review, task planning, auto-fixing, commit generation, and local code scanning.
 
@@ -124,21 +124,21 @@ code --install-extension ai-code-agents-0.1.0.vsix
 
 ```bash
 # From each agent directory
-cd D:\Puninar\scan-agent        && npm install -g .
-cd D:\Puninar\code-reviewer-agent && npm install -g .
-cd D:\Puninar\tasker-agent      && npm install -g .
-cd D:\Puninar\fixer-agent       && npm install -g .
-cd D:\Puninar\test-agent       && npm install -g .
-cd D:\Puninar\commit-agent      && npm install -g .
-cd D:\Puninar\diff-reviewer-agent && npm install -g .
-cd D:\Puninar\orchestrator-agent && npm install -g .
+cd scan-agent              && npm install -g .
+cd code-reviewer-agent     && npm install -g .
+cd tasker-agent            && npm install -g .
+cd fixer-agent             && npm install -g .
+cd test-agent              && npm install -g .
+cd commit-agent            && npm install -g .
+cd diff-reviewer-agent     && npm install -g .
+cd orchestrator-agent      && npm install -g .
 ```
 
 ### Platform notes
 
 | Platform | Note |
 |---|---|
-| **Windows** | npm global creates a junction `C:\Program Files\nodejs\node_modules\{agent}` → `D:\Puninar\{agent}`. Edits on `D:\Puninar` take effect immediately. |
+| **Windows** | npm global creates a junction `%APPDATA%\npm\node_modules\{agent}` → `./{agent}`. Edits in the source directory take effect immediately. |
 | **macOS / Linux** | npm global creates a symlink in `/usr/local/lib/node_modules/` or similar. Edits in the source directory apply immediately to the global install. |
 | **Line endings** | Repo uses `.gitattributes` to enforce LF. If you copy files manually from Windows → Mac, convert line endings: `dos2unix scripts/*.mjs` or use `tr -d '\r'`. |
 
@@ -577,7 +577,7 @@ The tasker decides **which** tasks to fix (`--task=1,3` or `--apply` for all). T
 ## Architecture
 
 ```
-D:\Puninar\
+.
 ├── .gitattributes          (LF line endings for all platforms)
 ├── docs/                   (this document + install scripts)
 │   ├── README.md

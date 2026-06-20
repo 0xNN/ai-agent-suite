@@ -1,5 +1,5 @@
 # ───────────────────────────────────────────────
-#  Puninar AI Agents — Windows Install Script
+#  AI Agents — Windows Install Script
 # ───────────────────────────────────────────────
 # Run this script from PowerShell as Administrator:
 #   Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass

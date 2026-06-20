@@ -11,7 +11,7 @@ Build bisa gagal otomatis jika report berstatus `fail` dengan severity `critical
 ## Setup
 
 ```bash
-cd D:\Puninar\code-reviewer-agent
+cd code-reviewer-agent
 npm install
 npm install -g .
 ```
@@ -20,8 +20,8 @@ Buat `.env` di folder agent:
 
 ```env
 CODE_REVIEW_API_KEY=your-key
-CODE_REVIEW_BASE_URL=https://token-plan-sgp.xiaomimimo.com/v1
-CODE_REVIEW_MODEL=nama-model
+CODE_REVIEW_BASE_URL=https://api.openai.com/v1
+CODE_REVIEW_MODEL=gpt-4o
 ```
 
 ---
@@ -33,7 +33,7 @@ CODE_REVIEW_MODEL=nama-model
 code-reviewer-agent
 
 # Path spesifik
-code-reviewer-agent --path=D:\Puninar\tms_billing
+code-reviewer-agent --path=./my-project
 
 # Bahasa Indonesia
 code-reviewer-agent --lang=id
@@ -104,7 +104,7 @@ cp skills/flutter-code-reviewer.md skills/SKILL.md
 }
 ```
 
-> Semua file skill dan `.ai-reviewer.json` ada di `D:\Puninar\code-reviewer-agent\skills\`.
+> Semua file skill dan `.ai-reviewer.json` ada di `./skills/`.
 
 ---
 
@@ -161,7 +161,7 @@ Struktur: metadata → status badge → summary → tabel findings → detail pe
 Build image:
 
 ```bash
-cd D:\Puninar\code-reviewer-agent
+cd code-reviewer-agent
 docker build -t code-reviewer-agent:local .
 ```
 

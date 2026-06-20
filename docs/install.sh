@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ───────────────────────────────────────────────
-#  Puninar AI Agents — macOS/Linux Install Script
+#  AI Agents — macOS/Linux Install Script
 # ───────────────────────────────────────────────
 # Run:
 #   chmod +x docs/install.sh
