@@ -119,7 +119,7 @@ export class AgentRunner {
       child.stderr?.on("data", (chunk: Buffer) => onData(chunk, "stderr"));
 
       token?.addEventListener("abort", () => {
-        child.kill("SIGTERM");
+        child.kill();
         resolve({ exitCode: -1, stdout, stderr });
       });
 
