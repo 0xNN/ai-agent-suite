@@ -328,6 +328,15 @@ async function runFixerForTasks(tasks, contextFindings) {
           stdio: "inherit",
           shell: true,
         });
+        console.log(`  Generating tests for ${file}...`);
+        try {
+          execSync(`test-agent --apply --report=".tasker-temp-report.md" --path="${root}"`, {
+            stdio: "inherit",
+            shell: true,
+          });
+        } catch {
+          console.warn(`  [!] Test generation skipped for ${file} (test-agent not installed or failed)`);
+        }
       } catch {
         console.warn(`  [!] Fixer failed for ${file}`);
         allSuccess = false;
