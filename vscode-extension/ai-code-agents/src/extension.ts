@@ -52,7 +52,7 @@ export function activate(context: vscode.ExtensionContext) {
 
   const panelProvider = new PanelProvider();
   context.subscriptions.push(
-    vscode.window.registerWebviewViewProvider(PanelProvider.viewType, panelProvider)
+    vscode.window.registerWebviewViewProvider(PanelProvider.viewType, panelProvider, { webviewOptions: { retainContextWhenHidden: true } })
   );
 
   panelProvider.onDidReceiveMessage(async (msg) => {
