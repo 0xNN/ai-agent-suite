@@ -1,0 +1,9 @@
+node_modules/
+dist/
+build/
+coverage/
+.env
+ai-review-report*.md
+*.log
+.env*
+skills/javascript-typescript-code-reviewer.md

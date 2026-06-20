@@ -1,0 +1,16 @@
+{
+  "name": "scan-agent",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "ai-scanner": "./scripts/ai-scanner.mjs",
+    "scan-agent": "./scripts/ai-scanner.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "node scripts/ai-scanner.mjs"
+  }
+}

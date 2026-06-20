@@ -1,0 +1,16 @@
+{
+  "name": "diff-reviewer-agent",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "diff-reviewer": "./scripts/ai-diff-reviewer.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "node scripts/ai-diff-reviewer.mjs",
+    "dry-run": "node scripts/ai-diff-reviewer.mjs --dry-run"
+  }
+}

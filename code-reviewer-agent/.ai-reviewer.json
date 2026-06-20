@@ -1,0 +1,23 @@
+{
+  "include": [
+    "src/**/*.js",
+    "src/**/*.jsx",
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    "*.js",
+    "*.mjs",
+    "*.cjs",
+    "*.ts",
+    "*.tsx",
+    "package.json",
+    "tsconfig.json"
+  ],
+  "exclude": [
+    "node_modules/**",
+    "dist/**",
+    "build/**",
+    "coverage/**",
+    ".git/**",
+    "ai-review-report.md"
+  ]
+}

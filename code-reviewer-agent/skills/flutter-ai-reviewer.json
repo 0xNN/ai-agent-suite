@@ -1,0 +1,23 @@
+{
+  "include": [
+    "**/*.dart",
+    "pubspec.yaml",
+    "analysis_options.yaml"
+  ],
+  "exclude": [
+    ".dart_tool/**",
+    "build/**",
+    ".git/**",
+    "**/*.g.dart",
+    "**/*.freezed.dart",
+    "**/*.gr.dart",
+    "coverage/**",
+    "ios/**",
+    "android/**",
+    "macos/**",
+    "windows/**",
+    "linux/**",
+    "web/**",
+    "test/**"
+  ]
+}

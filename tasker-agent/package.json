@@ -1,0 +1,16 @@
+{
+  "name": "tasker-agent",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "tasker-agent": "./scripts/ai-task-generator.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "node scripts/ai-task-generator.mjs",
+    "dry-run": "node scripts/ai-task-generator.mjs --dry-run"
+  }
+}

@@ -1,0 +1,25 @@
+# Secrets
+.env
+*.local
+
+# Node
+node_modules/
+npm-debug.log*
+
+# VS Code extension build artifacts
+vscode-extension/ai-code-agents/out/
+vscode-extension/ai-code-agents/*.vsix
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Runtime reports (generated per-run)
+**/ai-review-report-*.md
+**/ai-scan-report-*.md
+**/ai-tasks.json
+
+# Temp / debug
+argv-debug.txt
+test-argv.mjs
+nul

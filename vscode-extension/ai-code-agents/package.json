@@ -1,0 +1,131 @@
+{
+  "name": "ai-code-agents",
+  "displayName": "AI Code Agents",
+  "description": "AI-powered code scan, review, fix, test, commit — all 8 agents inside VS Code",
+  "version": "0.1.0",
+  "publisher": "puninar",
+  "license": "MIT",
+  "engines": { "vscode": "^1.85.0" },
+  "categories": ["Linters", "Other"],
+  "icon": "media/icon.png",
+  "activationEvents": ["onStartupFinished"],
+  "main": "./out/extension.js",
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "aiCodeAgents",
+          "title": "AI Code Agents",
+          "icon": "media/icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "aiCodeAgents": [
+        {
+          "type": "webview",
+          "id": "aiCodeAgents.panel",
+          "name": "Agents"
+        }
+      ]
+    },
+    "commands": [
+      { "command": "aiCodeAgents.scan",          "title": "AI Agents: Scan (local, no AI)" },
+      { "command": "aiCodeAgents.reviewFile",    "title": "AI Agents: Review This File" },
+      { "command": "aiCodeAgents.reviewWorkspace","title": "AI Agents: Review Workspace" },
+      { "command": "aiCodeAgents.diffReview",    "title": "AI Agents: Diff Review (changed only)" },
+      { "command": "aiCodeAgents.taskPlan",      "title": "AI Agents: Plan Tasks" },
+      { "command": "aiCodeAgents.fixAll",        "title": "AI Agents: Fix All Issues" },
+      { "command": "aiCodeAgents.fixFile",       "title": "AI Agents: Fix This File" },
+      { "command": "aiCodeAgents.generateTests", "title": "AI Agents: Generate Tests" },
+      { "command": "aiCodeAgents.generateCommit", "title": "AI Agents: Generate Commit Message" },
+      { "command": "aiCodeAgents.fullPipeline",  "title": "AI Agents: Run Full Pipeline" },
+      { "command": "aiCodeAgents.cancel",        "title": "AI Agents: Cancel Running Agent" },
+      { "command": "aiCodeAgents.showPanel",     "title": "AI Agents: Show Output Panel" }
+    ],
+    "menus": {
+      "editor/context": [
+        { "command": "aiCodeAgents.scan",          "group": "aiCodeAgents@1", "when": "editorIsOpen" },
+        { "command": "aiCodeAgents.reviewFile",    "group": "aiCodeAgents@2", "when": "editorIsOpen" },
+        { "command": "aiCodeAgents.fixFile",       "group": "aiCodeAgents@3", "when": "editorIsOpen" }
+      ],
+      "explorer/context": [
+        { "command": "aiCodeAgents.reviewWorkspace", "group": "aiCodeAgents@1" },
+        { "command": "aiCodeAgents.scan",            "group": "aiCodeAgents@2" },
+        { "command": "aiCodeAgents.diffReview",      "group": "aiCodeAgents@3" }
+      ]
+    },
+    "keybindings": [
+      { "command": "aiCodeAgents.reviewWorkspace", "key": "ctrl+shift+r", "mac": "cmd+shift+r", "when": "editorFocus" },
+      { "command": "aiCodeAgents.diffReview",      "key": "ctrl+shift+d", "mac": "cmd+shift+d", "when": "editorFocus" },
+      { "command": "aiCodeAgents.fixAll",          "key": "ctrl+shift+x", "mac": "cmd+shift+x", "when": "editorFocus" },
+      { "command": "aiCodeAgents.generateCommit",  "key": "ctrl+shift+c", "mac": "cmd+shift+c", "when": "editorFocus" }
+    ],
+    "configuration": {
+      "title": "AI Code Agents",
+      "properties": {
+        "aiCodeAgents.provider": {
+          "type": "string",
+          "default": "",
+          "enum": ["", "openai", "anthropic", "nvidia", "minimax", "custom"],
+          "enumDescriptions": [
+            "Use values from `.env` file",
+            "OpenAI — api.openai.com/v1 (gpt-4o)",
+            "Anthropic — api.anthropic.com/v1 (claude-sonnet-4-20250514)",
+            "NVIDIA — integrate.api.nvidia.com/v1 (deepseek-ai/deepseek-v4-flash)",
+            "Minimax — api.minimax.chat/v1 (minimax-m2.7)",
+            "Custom — set model and base URL manually below"
+          ],
+          "markdownDescription": "LLM provider preset. Auto-fills model and base URL."
+        },
+        "aiCodeAgents.apiKey": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "API Key. Leave empty to use `CODE_REVIEW_API_KEY` or `OPENAI_API_KEY` from `.env`. All providers must be OpenAI-compatible (for Anthropic, use an OpenAI-compatible proxy)."
+        },
+        "aiCodeAgents.model": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "LLM model override. Leave empty to use provider default or `CODE_REVIEW_MODEL` from `.env`."
+        },
+        "aiCodeAgents.baseUrl": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "API base URL (e.g. `https://api.openai.com/v1`). Leave empty to use provider default or `CODE_REVIEW_BASE_URL` from `.env`."
+        },
+        "aiCodeAgents.language": {
+          "type": "string",
+          "default": "en",
+          "enum": ["en", "id"],
+          "description": "Output language: en (English) or id (Indonesian)"
+        },
+        "aiCodeAgents.autoReviewOnSave": {
+          "type": "boolean",
+          "default": false,
+          "description": "Automatically run diff-review (fast) when a file is saved"
+        },
+        "aiCodeAgents.showDiagnostics": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show findings in Problems panel after review"
+        },
+        "aiCodeAgents.streamOutput": {
+          "type": "boolean",
+          "default": false,
+          "description": "Stream LLM output token-by-token (only for review agents)"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "package": "npx @vscode/vsce package"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.85.0",
+    "@types/node": "^20.0.0",
+    "@vscode/vsce": "^2.24.0",
+    "typescript": "^5.3.0"
+  }
+}
