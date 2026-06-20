@@ -80,10 +80,8 @@ if (dryRun && !selectedIds) {
   loader.stop();
 }
 
-if (!dryRun) {
-  const taskFile = path.join(root, tasksFilename);
-  await writeFile(taskFile, JSON.stringify({ completed: [...completedSet], tasks: tasks.tasks }, null, 2), "utf8");
-}
+const taskFile = path.join(root, tasksFilename);
+await writeFile(taskFile, JSON.stringify({ completed: [...completedSet], tasks: tasks.tasks }, null, 2), "utf8");
 
 const filteredTasks = selectedIds
   ? tasks.tasks.filter((t) => selectedIds.includes(t.id))
@@ -91,10 +89,8 @@ const filteredTasks = selectedIds
 
 printTaskList(filteredTasks, pendingFindings);
 
-if (!dryRun) {
-  console.log(`\nTask list written to ${tasksFilename}`);
-  console.log(`Total: ${tasks.tasks.length} task(s) across ${pendingFindings.length} finding(s).`);
-}
+console.log(`\nTask list written to ${tasksFilename}`);
+console.log(`Total: ${tasks.tasks.length} task(s) across ${pendingFindings.length} finding(s).`);
 
 if (applyFixes && filteredTasks.length > 0) {
   const completedNow = await runFixerForTasks(filteredTasks, pendingFindings);
@@ -103,7 +99,6 @@ if (applyFixes && filteredTasks.length > 0) {
     for (const fi of completedNow) completedSet.add(fi);
 
     tasks.tasks = tasks.tasks.filter((t) => !t.findings.every((fi) => completedSet.has(fi)));
-    const taskFile = path.join(root, tasksFilename);
     await writeFile(taskFile, JSON.stringify({ completed: [...completedSet], tasks: tasks.tasks }, null, 2), "utf8");
 
     if (tasks.tasks.length === 0) {
