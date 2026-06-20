@@ -91,19 +91,22 @@ body {
 /* ─── Pipeline Flow ─── */
 .flow {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 4px;
+  gap: 2px;
   margin-bottom: 14px;
-  padding: 8px 10px;
+  padding: 6px 8px;
   background: var(--vscode-editor-background);
   border-radius: var(--radius);
-  font-size: 10px;
+  font-size: 9px;
+  line-height: 1.6;
 }
 .flow .step {
-  padding: 2px 6px;
-  border-radius: 4px;
+  padding: 1px 4px;
+  border-radius: 3px;
   color: var(--vscode-descriptionForeground);
   opacity: 0.5;
+  white-space: nowrap;
 }
 .flow .step.active {
   opacity: 1;
@@ -115,7 +118,7 @@ body {
 .flow .sep {
   color: var(--vscode-descriptionForeground);
   opacity: 0.3;
-  font-size: 8px;
+  font-size: 7px;
 }
 
 /* ─── Sections ─── */
