@@ -3,7 +3,10 @@ dist/
 build/
 coverage/
 .env
+.env.local
+.env.production
+.env.*
+!.env.example
 ai-review-report*.md
 *.log
-.env*
 skills/javascript-typescript-code-reviewer.md
