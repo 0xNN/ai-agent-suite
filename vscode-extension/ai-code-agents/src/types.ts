@@ -46,8 +46,8 @@ export interface RunResult {
 }
 
 export interface PanelMessage {
-  type: "run" | "cancel" | "fixSelected" | "tasksLoad";
-  agent?: AgentName;
+  type: "run" | "cancel" | "fixSelected" | "tasksLoad" | "openSettings" | "toggleWatch";
+  agent?: string;
   args?: string[];
   taskIds?: number[];
 }

@@ -37,17 +37,21 @@
       { "command": "aiCodeAgents.taskPlan",      "title": "AI Agents: Plan Tasks" },
       { "command": "aiCodeAgents.fixAll",        "title": "AI Agents: Fix All Issues" },
       { "command": "aiCodeAgents.fixFile",       "title": "AI Agents: Fix This File" },
+      { "command": "aiCodeAgents.fixFileWithPreview", "title": "AI Agents: Fix This File (Preview Diff First)" },
       { "command": "aiCodeAgents.generateTests", "title": "AI Agents: Generate Tests" },
       { "command": "aiCodeAgents.generateCommit", "title": "AI Agents: Generate Commit Message" },
       { "command": "aiCodeAgents.fullPipeline",  "title": "AI Agents: Run Full Pipeline" },
       { "command": "aiCodeAgents.cancel",        "title": "AI Agents: Cancel Running Agent" },
-      { "command": "aiCodeAgents.showPanel",     "title": "AI Agents: Show Output Panel" }
+      { "command": "aiCodeAgents.showPanel",     "title": "AI Agents: Show Output Panel" },
+      { "command": "aiCodeAgents.toggleWatch",   "title": "AI Agents: Toggle Watch Mode" },
+      { "command": "aiCodeAgents.openSettings",  "title": "AI Agents: Open Extension Settings" }
     ],
     "menus": {
       "editor/context": [
         { "command": "aiCodeAgents.scan",          "group": "aiCodeAgents@1", "when": "editorIsOpen" },
         { "command": "aiCodeAgents.reviewFile",    "group": "aiCodeAgents@2", "when": "editorIsOpen" },
-        { "command": "aiCodeAgents.fixFile",       "group": "aiCodeAgents@3", "when": "editorIsOpen" }
+        { "command": "aiCodeAgents.fixFile",       "group": "aiCodeAgents@3", "when": "editorIsOpen" },
+        { "command": "aiCodeAgents.fixFileWithPreview", "group": "aiCodeAgents@4", "when": "editorIsOpen" }
       ],
       "explorer/context": [
         { "command": "aiCodeAgents.reviewWorkspace", "group": "aiCodeAgents@1" },
@@ -59,6 +63,7 @@
       { "command": "aiCodeAgents.reviewWorkspace", "key": "ctrl+shift+r", "mac": "cmd+shift+r", "when": "editorFocus" },
       { "command": "aiCodeAgents.diffReview",      "key": "ctrl+shift+d", "mac": "cmd+shift+d", "when": "editorFocus" },
       { "command": "aiCodeAgents.fixAll",          "key": "ctrl+shift+x", "mac": "cmd+shift+x", "when": "editorFocus" },
+      { "command": "aiCodeAgents.fixFileWithPreview", "key": "ctrl+shift+p", "mac": "cmd+shift+p", "when": "editorFocus" },
       { "command": "aiCodeAgents.generateCommit",  "key": "ctrl+shift+c", "mac": "cmd+shift+c", "when": "editorFocus" }
     ],
     "configuration": {
@@ -86,12 +91,24 @@
         "aiCodeAgents.model": {
           "type": "string",
           "default": "",
-          "markdownDescription": "LLM model override. Leave empty to use provider default or `CODE_REVIEW_MODEL` from `.env`."
+          "markdownDescription": "Global LLM model override. Leave empty to use provider default or `CODE_REVIEW_MODEL` from `.env`. Override per-agent via `agentDefaults`."
         },
         "aiCodeAgents.baseUrl": {
           "type": "string",
           "default": "",
-          "markdownDescription": "API base URL (e.g. `https://api.openai.com/v1`). Leave empty to use provider default or `CODE_REVIEW_BASE_URL` from `.env`."
+          "markdownDescription": "Global API base URL (e.g. `https://api.openai.com/v1`). Leave empty to use provider default or `CODE_REVIEW_BASE_URL` from `.env`. Override per-agent via `agentDefaults`."
+        },
+        "aiCodeAgents.agentDefaults": {
+          "type": "object",
+          "default": {},
+          "markdownDescription": "Per-agent model/provider overrides. Key = agent name (e.g. `code-reviewer-agent`, `fixer-agent`), value = `{ provider, model, baseUrl }`. Overrides global settings for specific agents.\n\nExample:\n```json\n{\n  \"code-reviewer-agent\": { \"provider\": \"openai\", \"model\": \"gpt-4o\" },\n  \"fixer-agent\": { \"provider\": \"nvidia\", \"model\": \"deepseek-ai/deepseek-v4-flash\" }\n}\n```",
+          "properties": {
+            "code-reviewer-agent": { "type": "object", "default": {} },
+            "fixer-agent": { "type": "object", "default": {} },
+            "diff-reviewer": { "type": "object", "default": {} },
+            "test-agent": { "type": "object", "default": {} },
+            "commit-agent": { "type": "object", "default": {} }
+          }
         },
         "aiCodeAgents.language": {
           "type": "string",
@@ -113,6 +130,39 @@
           "type": "boolean",
           "default": false,
           "description": "Stream LLM output token-by-token (only for review agents)"
+        },
+        "aiCodeAgents.watchMode.enabled": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable watch mode — auto-run agents when files change"
+        },
+        "aiCodeAgents.watchMode.debounceMs": {
+          "type": "number",
+          "default": 1500,
+          "minimum": 200,
+          "maximum": 30000,
+          "description": "Debounce delay in milliseconds before triggering an agent after a file change"
+        },
+        "aiCodeAgents.watchMode.agents": {
+          "type": "array",
+          "default": [
+            { "pattern": "*.{ts,tsx,js,jsx}", "agent": "diff-reviewer" },
+            { "pattern": "*.{tsx,jsx}", "agent": "code-reviewer-agent" }
+          ],
+          "items": {
+            "type": "object",
+            "properties": {
+              "pattern": { "type": "string", "description": "Glob pattern to match file names" },
+              "agent": { "type": "string", "description": "Agent to run (e.g. diff-reviewer, code-reviewer-agent)" }
+            }
+          },
+          "description": "File patterns → which agent to trigger"
+        },
+        "aiCodeAgents.watchMode.excludedPaths": {
+          "type": "array",
+          "default": ["node_modules/**", "dist/**", "out/**", ".git/**", "build/**"],
+          "items": { "type": "string" },
+          "description": "Glob patterns for paths to exclude from watch mode"
         }
       }
     }

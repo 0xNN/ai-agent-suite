@@ -6,12 +6,15 @@ import { AgentRunner } from "./AgentRunner";
 import { DiagnosticsProvider } from "./DiagnosticsProvider";
 import { StatusBarManager } from "./StatusBarManager";
 import { PanelProvider } from "./PanelProvider";
-import { AgentName, ALL_AGENTS, AiTasksData, AiTask } from "./types";
+import { AgentName, ALL_AGENTS, AiTasksData } from "./types";
+import { AIReviewCodeActionProvider, registerIgnoreCommand } from "./CodeActionProvider";
+import { WatchManager } from "./WatchManager";
 
 let outputChannel: vscode.OutputChannel;
 let runner: AgentRunner;
 let diagnostics: DiagnosticsProvider;
 let statusBar: StatusBarManager;
+let watchManager: WatchManager;
 let abortController: AbortController | null = null;
 let nodeOk = false;
 
@@ -55,6 +58,28 @@ export function activate(context: vscode.ExtensionContext) {
     vscode.window.registerWebviewViewProvider(PanelProvider.viewType, panelProvider, { webviewOptions: { retainContextWhenHidden: true } })
   );
 
+  context.subscriptions.push(
+    vscode.languages.registerCodeActionsProvider({ pattern: "**/*" }, new AIReviewCodeActionProvider(), {
+      providedCodeActionKinds: AIReviewCodeActionProvider.providedCodeActionKinds,
+    })
+  );
+
+  registerIgnoreCommand(context, outputChannel);
+
+  watchManager = new WatchManager(runner, panelProvider);
+
+  watchManager.onStatusChange(({ watching }) => {
+    panelProvider.postWatchStatus(watching);
+    if (watching) {
+      statusBar.setState("watching");
+    } else {
+      const config = vscode.workspace.getConfiguration("aiCodeAgents");
+      if (config.get<boolean>("watchMode.enabled")) {
+        statusBar.setState("idle");
+      }
+    }
+  });
+
   panelProvider.onDidReceiveMessage(async (msg) => {
     switch (msg.type) {
       case "cancel":
@@ -66,9 +91,15 @@ export function activate(context: vscode.ExtensionContext) {
       case "tasksLoad":
         await loadTasksFromFile(panelProvider);
         return;
+      case "openSettings":
+        vscode.commands.executeCommand("workbench.action.openSettings", "@ext:ai-code-agents");
+        return;
+      case "toggleWatch":
+        await toggleWatchMode(panelProvider);
+        return;
       case "run":
         if (msg.agent) {
-          await runAgent(msg.agent, msg.args ?? [], panelProvider);
+          await runAgent(msg.agent as AgentName, msg.args ?? [], panelProvider);
         }
         return;
     }
@@ -100,6 +131,11 @@ export function activate(context: vscode.ExtensionContext) {
       if (!file) { vscode.window.showWarningMessage("Open a file first."); return; }
       await runAgent("fixer-agent", ["--apply", `--path="${file}"`], panelProvider);
     }),
+    vscode.commands.registerCommand("aiCodeAgents.fixFileWithPreview", async () => {
+      const file = vscode.window.activeTextEditor?.document.uri.fsPath;
+      if (!file) { vscode.window.showWarningMessage("Open a file first."); return; }
+      await previewAndFixFile(file, panelProvider, outputChannel);
+    }),
     vscode.commands.registerCommand("aiCodeAgents.generateTests", async () => {
       await runAgent("test-agent", ["--apply"], panelProvider);
     }),
@@ -114,6 +150,12 @@ export function activate(context: vscode.ExtensionContext) {
     }),
     vscode.commands.registerCommand("aiCodeAgents.showPanel", () => {
       outputChannel.show(true);
+    }),
+    vscode.commands.registerCommand("aiCodeAgents.toggleWatch", async () => {
+      await toggleWatchMode(panelProvider);
+    }),
+    vscode.commands.registerCommand("aiCodeAgents.openSettings", () => {
+      vscode.commands.executeCommand("workbench.action.openSettings", "@ext:ai-code-agents");
     }),
   );
 
@@ -131,12 +173,25 @@ export function activate(context: vscode.ExtensionContext) {
   );
 
   context.subscriptions.push(
+    vscode.workspace.onDidChangeConfiguration((e) => {
+      if (e.affectsConfiguration("aiCodeAgents.watchMode")) {
+        watchManager.restart();
+      }
+    })
+  );
+
+  context.subscriptions.push(
     new vscode.Disposable(() => {
       diagnostics.dispose();
       statusBar.dispose();
+      watchManager.dispose();
       outputChannel.dispose();
     })
   );
+
+  if (vscode.workspace.getConfiguration("aiCodeAgents").get<boolean>("watchMode.enabled")) {
+    watchManager.start();
+  }
 
   outputChannel.appendLine("AI Code Agents activated.");
 }
@@ -153,6 +208,18 @@ function guardNode(): boolean {
   }
   statusBar.setState("idle");
   return true;
+}
+
+async function toggleWatchMode(panel: PanelProvider) {
+  const config = vscode.workspace.getConfiguration("aiCodeAgents");
+  const current = config.get<boolean>("watchMode.enabled", false);
+  await config.update("watchMode.enabled", !current, vscode.ConfigurationTarget.Workspace);
+  outputChannel.appendLine(`Watch mode: ${!current ? "ON" : "OFF"}`);
+  if (!current) {
+    watchManager.start();
+  } else {
+    watchManager.stop();
+  }
 }
 
 async function runAgent(
@@ -276,6 +343,135 @@ function hasReportFile(workspaceRoot: string): boolean {
   } catch {
     return false;
   }
+}
+
+async function previewAndFixFile(file: string, panel: PanelProvider, log: vscode.OutputChannel) {
+  if (!guardNode()) return;
+
+  const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+  if (!workspaceRoot) { vscode.window.showWarningMessage("No workspace folder open."); return; }
+
+  if (!hasReportFile(workspaceRoot)) {
+    const runReview = await vscode.window.showInformationMessage(
+      "No review report found. Run review first?",
+      { modal: true },
+      "Review Workspace"
+    );
+    if (runReview) {
+      await runAgent("code-reviewer-agent", [], panel);
+      if (!hasReportFile(workspaceRoot)) return;
+    } else {
+      return;
+    }
+  }
+
+  abortController = new AbortController();
+  statusBar.setState("running", "Preview fix");
+  panel.postState("running", undefined, "Preview fix");
+  log.show(true);
+  log.appendLine(`\n▶ Preview fix for: ${file}`);
+
+  try {
+    const result = await runner.run({
+      agent: "fixer-agent",
+      args: ["--diff"],
+      cwd: workspaceRoot,
+      token: abortController.signal,
+      onStdout: (line) => panel.postLog(line),
+      onStderr: (line) => panel.postLog(`[err] ${line}`),
+    });
+
+    if (result.exitCode !== 0) {
+      vscode.window.showErrorMessage("Fix preview failed. Check output.");
+      return;
+    }
+
+    const allDiffs = parseDiffs(result.stdout);
+    const diffs = allDiffs.filter((d) => d.file === file);
+
+    if (diffs.length === 0) {
+      vscode.window.showInformationMessage("No changes suggested for this file.");
+      statusBar.setState("clean");
+      panel.postState("done", 0);
+      return;
+    }
+
+    const encoder = new TextEncoder();
+
+    for (const d of diffs) {
+      const uri = vscode.Uri.file(d.file);
+      const origUri = uri.with({ scheme: "ai-fix-orig" });
+      const fixUri = uri.with({ scheme: "ai-fix-new" });
+
+      await vscode.workspace.fs.writeFile(origUri, encoder.encode(d.original));
+      await vscode.workspace.fs.writeFile(fixUri, encoder.encode(d.fixed));
+
+      await vscode.commands.executeCommand("vscode.diff", origUri, fixUri, `Fix preview: ${path.basename(d.file)}`);
+    }
+
+    const apply = await vscode.window.showInformationMessage(
+      `Apply fix for ${path.basename(file)}?`,
+      { modal: true },
+      "Apply",
+      "Cancel"
+    );
+
+    if (apply === "Apply") {
+      log.appendLine("▶ Applying fixes...");
+      await runAgent("fixer-agent", ["--apply"], panel);
+      statusBar.setState("idle");
+      panel.postState("done");
+      vscode.window.showInformationMessage("Fixes applied.");
+    } else {
+      statusBar.setState("idle");
+      panel.postState("done", 0);
+      log.appendLine("✗ Cancelled by user.");
+    }
+  } catch (err: any) {
+    statusBar.setState("error", err?.message);
+    panel.postState("error");
+    log.appendLine(`Extension error: ${err?.message ?? err}`);
+  } finally {
+    abortController = null;
+  }
+}
+
+function parseDiffs(stdout: string): { file: string; original: string; fixed: string }[] {
+  const results: { file: string; original: string; fixed: string }[] = [];
+  const lines = stdout.split("\n");
+  let i = 0;
+
+  while (i < lines.length) {
+    const diffMatch = lines[i].match(/^## DIFF: (.+)$/);
+    if (!diffMatch) { i++; continue; }
+    const file = diffMatch[1];
+
+    const origLines: string[] = [];
+    const fixLines: string[] = [];
+    let reading = 0; // 0=none, 1=orig, 2=fixed
+
+    i++;
+    while (i < lines.length && !lines[i].startsWith("## ENDDIFF")) {
+      const line = lines[i];
+      if (reading === 0) {
+        if (line.startsWith("--- a/")) reading = 1;
+        else reading = 0;
+      } else if (reading === 1) {
+        if (line.startsWith("+++ b/")) reading = 2;
+        else if (line.startsWith("---")) { /* skip */ }
+      } else if (reading === 2) {
+        if (line.startsWith("@@ ")) { /* skip hunk header */ }
+        else if (line.startsWith("-")) origLines.push(line.slice(1));
+        else if (line.startsWith("+")) fixLines.push(line.slice(1));
+        else { origLines.push(line.slice(1)); fixLines.push(line.slice(1)); }
+      }
+      i++;
+    }
+
+    results.push({ file, original: origLines.join("\n"), fixed: fixLines.join("\n") });
+    i++;
+  }
+  return results;
 }
 
 async function fixSelectedTasks(taskIds: number[], panel: PanelProvider) {

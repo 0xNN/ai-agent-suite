@@ -11,6 +11,7 @@ const pathArg = process.argv.find((arg) => arg.startsWith("--path="))?.slice("--
 const root = pathArg ? path.resolve(pathArg) : process.cwd();
 const dryRun = process.argv.includes("--dry-run");
 const applyFixes = process.argv.includes("--apply");
+const diffMode = process.argv.includes("--diff");
 const reportArg = process.argv.find((arg) => arg.startsWith("--report="))?.slice("--report=".length);
 const customPrompt = process.argv.find((arg) => arg.startsWith("--prompt="))?.slice("--prompt=".length);
 const shellEnvKeys = new Set(Object.keys(process.env));
@@ -84,15 +85,24 @@ for (const [file, fileFindings] of grouped) {
     if (applyFixes) {
       await writeFile(absolutePath, cleaned, "utf8");
       console.log(`    ✓ Fixed`);
+    } else if (diffMode) {
+      console.log(`\n## DIFF: ${absolutePath}`);
+      console.log(`--- a/${absolutePath}`);
+      console.log(`+++ b/${absolutePath}`);
+      const origLines = original.split("\n");
+      const newLines = cleaned.split("\n");
+      const diff = unifiedDiff(origLines, newLines);
+      console.log(diff);
+      console.log(`## ENDDIFF: ${absolutePath}`);
     } else {
       showDiff(file, original, cleaned);
     }
-  } else {
+  } else if (!diffMode) {
     console.log(`    - No changes needed`);
   }
 }
 
-if (results.length > 0 && !applyFixes && !dryRun) {
+if (results.length > 0 && !applyFixes && !dryRun && !diffMode) {
   console.log("\n── Summary ──");
   console.log(`${results.length} file(s) can be fixed.`);
   console.log('Run with --apply to write changes: fixer-agent --apply');
@@ -187,6 +197,33 @@ function showDiff(file, original, fixed) {
   }
 
   if (!hasDiff) console.log("    (no diff)");
+}
+
+function unifiedDiff(a, b) {
+  const lines = [];
+  const maxLen = Math.max(a.length, b.length);
+  let hunkStart = -1, hunkOld = 0, hunkNew = 0, hunk = [];
+  function flushHunk() {
+    if (hunk.length === 0) return;
+    lines.push(`@@ -${hunkStart + 1},${hunkOld} +${hunkStart + 1},${hunkNew} @@`);
+    lines.push(...hunk);
+    hunk = []; hunkOld = 0; hunkNew = 0;
+  }
+  for (let i = 0; i < maxLen; i++) {
+    const o = a[i] ?? "";
+    const n = b[i] ?? "";
+    if (o !== n) {
+      if (hunkStart === -1) hunkStart = i;
+      hunkOld++; hunkNew++;
+      if (o !== null && o !== undefined) hunk.push(`-${o}`);
+      if (n !== null && n !== undefined) hunk.push(`+${n}`);
+    } else {
+      if (hunk.length > 0 && hunk.length < 3) { hunk.push(` ${o}`); hunkOld++; hunkNew++; }
+      else flushHunk();
+    }
+  }
+  flushHunk();
+  return lines.join("\n");
 }
 
 async function callLLM({ apiKey, baseUrl, model, instructions, input }) {

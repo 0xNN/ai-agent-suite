@@ -34,6 +34,10 @@ export class PanelProvider implements vscode.WebviewViewProvider {
     this._view?.webview.postMessage({ type: "clearTasks" });
   }
 
+  postWatchStatus(watching: boolean) {
+    this._view?.webview.postMessage({ type: "watchStatus", watching });
+  }
+
   private getHtml(): string {
     return `<!DOCTYPE html>
 <html lang="en">
@@ -77,6 +81,10 @@ body {
 .status-bar.success {
   background: var(--vscode-inputValidation-warningBackground);
   border-color: var(--vscode-inputValidation-warningBorder);
+}
+.status-bar.watching {
+  background: color-mix(in srgb, var(--vscode-focusBorder) 12%, transparent);
+  border-color: var(--vscode-focusBorder);
 }
 .spinner {
   width: 14px; height: 14px;
@@ -390,6 +398,16 @@ body {
   </div>
 </div>
 
+<div class="group">
+  <div class="group-header"><span>⚙</span> Settings & Tools</div>
+  <div class="group-body">
+    <div class="actions">
+      <button class="btn btn-subtle" onclick="openSettings()"><span class="btn-icon">⚙</span> Extension Settings</button>
+      <button class="btn btn-subtle" onclick="toggleWatch()" id="watchBtn"><span class="btn-icon" id="watchIcon">👁</span> Watch Mode: <span id="watchState">OFF</span></button>
+    </div>
+  </div>
+</div>
+
 <div class="actions" style="margin-bottom: 10px;">
   <button class="btn btn-danger" onclick="run('orchestrator')"><span class="btn-icon">🚀</span> Run Full Pipeline</button>
 </div>
@@ -417,6 +435,14 @@ let running = false;
 function run(agent, args) {
   if (running) return;
   vscode.postMessage({ type: 'run', agent, args: args || [] });
+}
+
+function openSettings() {
+  vscode.postMessage({ type: 'openSettings' });
+}
+
+function toggleWatch() {
+  vscode.postMessage({ type: 'toggleWatch' });
 }
 
 function setRunning(state) {
@@ -449,7 +475,7 @@ function appendLog(t) {
 
 function setStatus(text, type) {
   const el = document.getElementById('statusBar');
-  if (!text) { el.classList.remove('show', 'error', 'success'); return; }
+  if (!text) { el.classList.remove('show', 'error', 'success', 'watching'); return; }
   el.textContent = text;
   el.className = 'status-bar show';
   if (type) el.classList.add(type);
@@ -530,6 +556,21 @@ window.addEventListener('message', ({ data }) => {
   if (data.type === 'log') appendLog(data.text);
   if (data.type === 'tasks') renderTasks(data.data);
   if (data.type === 'clearTasks') clearAllTasks();
+
+  if (data.type === 'watchStatus') {
+    const btn = document.getElementById('watchBtn');
+    const state = document.getElementById('watchState');
+    const icon = document.getElementById('watchIcon');
+    if (data.watching) {
+      state.textContent = 'ON';
+      icon.textContent = '👁';
+      btn.style.borderColor = 'var(--vscode-focusBorder)';
+    } else {
+      state.textContent = 'OFF';
+      icon.textContent = '👁';
+      btn.style.borderColor = '';
+    }
+  }
 
   if (data.type === 'state') {
     if (data.state === 'running') {

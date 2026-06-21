@@ -9,6 +9,12 @@ function stripAnsi(text: string): string {
   return text.replace(ansiRegex, "");
 }
 
+interface AgentDefaults {
+  provider?: string;
+  model?: string;
+  baseUrl?: string;
+}
+
 export class AgentRunner {
   private outputChannel: vscode.OutputChannel;
   private lineBuffer = "";
@@ -19,12 +25,16 @@ export class AgentRunner {
 
   private resolveCommand(agent: AgentName): { command: string; shell: boolean } {
     const isWin = process.platform === "win32";
-
     if (isWin) {
       return { command: `${agent}.cmd`, shell: true };
     }
-
     return { command: agent, shell: false };
+  }
+
+  private getAgentDefaults(agent: AgentName): AgentDefaults {
+    const config = vscode.workspace.getConfiguration("aiCodeAgents");
+    const agentOverrides = config.get<Record<string, AgentDefaults>>("agentDefaults", {});
+    return agentOverrides[agent] ?? {};
   }
 
   async run(opts: RunOptions): Promise<RunResult> {
@@ -32,9 +42,9 @@ export class AgentRunner {
 
     const config = vscode.workspace.getConfiguration("aiCodeAgents");
     const apiKey = config.get<string>("apiKey") ?? "";
-    const modelSetting = config.get<string>("model") ?? "";
-    const baseUrlSetting = config.get<string>("baseUrl") ?? "";
-    const provider = config.get<string>("provider") ?? "";
+    const globalProvider = config.get<string>("provider") ?? "";
+    const globalModel = config.get<string>("model") ?? "";
+    const globalBaseUrl = config.get<string>("baseUrl") ?? "";
     const lang = config.get<string>("language") ?? "en";
     const stream = config.get<boolean>("streamOutput") ?? false;
     const workdir = cwd ?? vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? process.cwd();
@@ -46,9 +56,16 @@ export class AgentRunner {
       minimax:  { model: "minimax-m2.7",                         baseUrl: "https://api.minimax.chat/v1" },
     };
 
-    const defaults = provider ? providerDefaults[provider] : undefined;
-    const model = modelSetting || defaults?.model || "";
-    const baseUrl = baseUrlSetting || defaults?.baseUrl || "";
+    const agentDef = this.getAgentDefaults(agent);
+    const effectiveProvider = agentDef.provider || globalProvider;
+    const defaults = effectiveProvider ? providerDefaults[effectiveProvider] : undefined;
+
+    const model = agentDef.model || globalModel || defaults?.model || "";
+    const baseUrl = agentDef.baseUrl || globalBaseUrl || defaults?.baseUrl || "";
+
+    this.outputChannel.appendLine(`\n▶ ${agent} model=${model || "(env)"} baseUrl=${baseUrl || "(env)"}`);
+    this.outputChannel.appendLine(`   ${agent} ${args.join(" ")}`);
+    this.outputChannel.appendLine("─".repeat(60));
 
     const { command, shell } = this.resolveCommand(agent);
 
@@ -71,9 +88,6 @@ export class AgentRunner {
       ...(model ? { CODE_REVIEW_MODEL: model } : {}),
       ...(baseUrl ? { CODE_REVIEW_BASE_URL: baseUrl } : {}),
     };
-
-    this.outputChannel.appendLine(`\n▶ ${agent} ${finalArgs.join(" ")}`);
-    this.outputChannel.appendLine("─".repeat(60));
 
     this.lineBuffer = "";
 

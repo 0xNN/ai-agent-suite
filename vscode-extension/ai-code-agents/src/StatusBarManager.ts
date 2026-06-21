@@ -5,7 +5,8 @@ export type StatusBarState =
   | "running"
   | "issues"
   | "clean"
-  | "error";
+  | "error"
+  | "watching";
 
 export class StatusBarManager {
   private item: vscode.StatusBarItem;
@@ -46,6 +47,11 @@ export class StatusBarManager {
         this.item.text = "$(error) Agent Failed";
         this.item.tooltip = detail ?? "An agent failed — check Output panel";
         this.item.color = new vscode.ThemeColor("statusBarItem.errorBackground");
+        break;
+      case "watching":
+        this.item.text = `$(eye) ${detail ?? "Watching…"}`;
+        this.item.tooltip = "Watch mode active — auto-reviewing changes";
+        this.item.color = new vscode.ThemeColor("statusBarItem.prominentForeground");
         break;
     }
   }
