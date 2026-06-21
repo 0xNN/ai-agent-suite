@@ -92,7 +92,7 @@ export function activate(context: vscode.ExtensionContext) {
         await loadTasksFromFile(panelProvider);
         return;
       case "openSettings":
-        vscode.commands.executeCommand("workbench.action.openSettings", "@ext:ai-code-agents");
+vscode.commands.executeCommand("workbench.action.openSettings", "AI Code Agents");
         return;
       case "toggleWatch":
         await toggleWatchMode(panelProvider);
@@ -155,7 +155,7 @@ export function activate(context: vscode.ExtensionContext) {
       await toggleWatchMode(panelProvider);
     }),
     vscode.commands.registerCommand("aiCodeAgents.openSettings", () => {
-      vscode.commands.executeCommand("workbench.action.openSettings", "@ext:ai-code-agents");
+      vscode.commands.executeCommand("workbench.action.openSettings", "AI Code Agents");
     }),
   );
 

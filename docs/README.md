@@ -42,16 +42,21 @@ Integrated directly into VS Code — no terminal needed.
 ### Features
 
 | Feature | Sidebar | Keyboard | Right-click |
-|---|---|---|---|
+|---|---|---|---|---|
 | Scan (local, no AI) | 🔍 Scan Project | — | Yes |
 | AI Review Workspace | 🔬 Review | `Ctrl+Shift+R` | Yes |
+| AI Review This File | — | — | Yes (editor) |
 | Diff Review (changed only) | 📝 Diff | `Ctrl+Shift+D` | Yes |
 | Plan Tasks | 📋 Plan Tasks | — | — |
 | Fix All Issues | 🔧 Fix All | `Ctrl+Shift+X` | Yes |
+| Fix This File | — | — | Yes (editor) |
+| Fix This File (Preview Diff) | — | `Ctrl+Shift+P` | Yes (editor) |
 | Fix Selected Tasks | ✅ Fix Selected (N) | — | — |
 | Generate Tests | 🧪 Tests | — | — |
 | Generate Commit | 💬 Commit | `Ctrl+Shift+C` | — |
 | Full Pipeline | 🚀 Run Full Pipeline | — | — |
+| Toggle Watch Mode | ⚙ Watch Mode: ON/OFF | — | — |
+| Open Extension Settings | ⚙ Extension Settings | — | — |
 
 ### Sidebar Panel
 
@@ -59,9 +64,25 @@ Integrated directly into VS Code — no terminal needed.
 - **Animated spinner** — shows agent name while running
 - **Task cards** — after Plan Tasks, shows prioritized tasks with checkboxes
 - **Fix Selected** — choose which tasks to fix, not all
+- **Watch Mode toggle** — enable/disable auto-review on file changes
+- **Extension Settings button** — opens VS Code settings filtered to AI Code Agents
 - **Buttons disabled** during agent run — prevents concurrent actions
 - **Output log** — real-time streaming output
-- **Status bar** — issue count summary
+- **Status bar** — issue count summary and watch mode indicator
+
+### Inline Code Actions (Lightbulb 💡)
+
+After Scan / Review, findings appear in the Problems panel. Hover over a diagnostic line or click the lightbulb to see:
+- **✨ Fix** — run `fixer-agent` on the file
+- **⏭ Ignore** — add to `.ai-reviewer-ignore`
+- **🔬 Review file** — run `code-reviewer-agent` on the active file
+- **🧪 Generate tests** — run `test-agent`
+
+### Fix with Preview (Diff Editor)
+
+1. Run **Fix This File (Preview Diff First)** (`Ctrl+Shift+P`)
+2. VS Code opens a **diff editor** showing original vs. AI-suggested fix
+3. Click **Apply** to write changes or **Cancel** to discard
 
 ### Problems Panel
 
@@ -70,15 +91,20 @@ Findings from Scan/Review appear as diagnostics inline — exactly like ESLint.
 ### Settings (`Ctrl+,` → AI Code Agents)
 
 | Setting | Default | Description |
-|---|---|---|---|
+|---|---|---|---|---|
 | `aiCodeAgents.provider` | `""` | LLM provider preset (`openai`, `anthropic`, `nvidia`, `minimax`, `custom`) |
 | `aiCodeAgents.apiKey` | `""` | API key (leave empty to use `.env`) |
-| `aiCodeAgents.model` | `""` | Model override (leave empty for provider default or `.env`) |
-| `aiCodeAgents.baseUrl` | `""` | Base URL override (leave empty for provider default or `.env`) |
+| `aiCodeAgents.model` | `""` | Global model override (leave empty for provider default or `.env`; override per-agent via `agentDefaults`) |
+| `aiCodeAgents.baseUrl` | `""` | Global base URL override (leave empty for provider default or `.env`; override per-agent via `agentDefaults`) |
+| `aiCodeAgents.agentDefaults` | `{}` | Per-agent model/provider overrides. Key = agent name, value = `{ provider, model, baseUrl }` |
 | `aiCodeAgents.language` | `"en"` | Output language (`en` / `id`) |
 | `aiCodeAgents.autoReviewOnSave` | `false` | Auto diff-review on file save |
 | `aiCodeAgents.showDiagnostics` | `true` | Show findings in Problems panel |
 | `aiCodeAgents.streamOutput` | `false` | Stream LLM output token-by-token |
+| `aiCodeAgents.watchMode.enabled` | `false` | Enable watch mode — auto-run agents when files change |
+| `aiCodeAgents.watchMode.debounceMs` | `1500` | Debounce delay (ms) before triggering an agent |
+| `aiCodeAgents.watchMode.agents` | `[{pattern: "*.{ts,tsx,js,jsx}", agent: "diff-reviewer"}, ...]` | File patterns → which agent to trigger |
+| `aiCodeAgents.watchMode.excludedPaths` | `["node_modules/**", ...]` | Glob patterns for paths to exclude from watch mode |
 
 **Provider presets** (auto-fill model + base URL when `model`/`baseUrl` are empty):
 
@@ -88,6 +114,19 @@ Findings from Scan/Review appear as diagnostics inline — exactly like ESLint.
 | `anthropic` | `https://api.anthropic.com/v1` | `claude-sonnet-4-20250514` |
 | `nvidia` | `https://integrate.api.nvidia.com/v1` | `deepseek-ai/deepseek-v4-flash` |
 | `minimax` | `https://api.minimax.chat/v1` | `minimax-m2.7` |
+
+### Multi-Model (Per-Agent)
+
+Set different providers/models for different agents via `aiCodeAgents.agentDefaults`:
+```json
+{
+  "code-reviewer-agent": { "provider": "openai",  "model": "gpt-4o" },
+  "fixer-agent":         { "provider": "nvidia",  "model": "deepseek-ai/deepseek-v4-flash" },
+  "commit-agent":        { "provider": "anthropic","model": "claude-sonnet-4-20250514" }
+}
+```
+
+Fallback chain per agent: `agentDefaults[agent]` → global `provider`/`model`/`baseUrl` → provider preset → `.env` → shell env vars.
 
 > All providers must be OpenAI-compatible (`/v1/chat/completions`). Anthropic requires an OpenAI-compatible proxy. Explicit `model`/`baseUrl` settings override provider presets. Empty values fall back to `.env`.
 
