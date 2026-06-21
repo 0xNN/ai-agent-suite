@@ -300,8 +300,8 @@ function buildProjectTree(allFiles) {
   return lines.join("\n");
 }
 
-const configFileNames = new Set(["package.json", "tsconfig.json", "go.mod", "go.sum", "pubspec.yaml", "Cargo.toml", "composer.json", "Gemfile", "Makefile", "Dockerfile", ".env.example"]);
 async function readConfigFiles(baseDir, allFiles) {
+  const configFileNames = new Set(["package.json", "tsconfig.json", "go.mod", "go.sum", "pubspec.yaml", "Cargo.toml", "composer.json", "Gemfile", "Makefile", "Dockerfile", ".env.example"]);
   const parts = [];
   for (const f of allFiles) {
     const name = f.split("/").pop();
