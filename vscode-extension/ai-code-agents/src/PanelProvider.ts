@@ -96,22 +96,24 @@ body {
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 
+.stop-row { display: none; margin-bottom: 12px; }
+.stop-row.show { display: flex; }
+
 .stop-btn {
-  display: none;
-  margin-left: auto;
+  flex: 1;
   background: var(--vscode-inputValidation-errorBackground);
   border: 1px solid var(--vscode-inputValidation-errorBorder);
   color: var(--vscode-errorForeground);
-  border-radius: 4px;
-  padding: 2px 8px;
+  border-radius: 6px;
+  padding: 6px 12px;
   cursor: pointer;
-  font-size: 13px;
-  line-height: 1.4;
-  flex-shrink: 0;
+  font-size: 12px;
+  font-family: inherit;
+  font-weight: 600;
   transition: opacity 0.15s;
+  text-align: center;
 }
 .stop-btn:hover { opacity: 0.8; }
-.stop-btn.show { display: inline-block; }
 
 /* ─── Pipeline Flow ─── */
 .flow {
@@ -366,7 +368,8 @@ body {
 </head>
 <body>
 
-<div id="statusBar" class="status-bar"><button id="stopBtn" class="stop-btn" onclick="cancel()" title="Stop">⏹</button></div>
+<div id="statusBar" class="status-bar"></div>
+<div id="stopRow" class="stop-row"><button id="stopBtn" class="stop-btn" onclick="cancel()" title="Stop">⏹ Stop</button></div>
 
   <div class="flow" id="flowBar">
   <span class="step" data-step="scan">Scan</span>
@@ -471,8 +474,7 @@ function setRunning(state) {
   running = state;
   document.querySelectorAll('.btn').forEach(b => { b.disabled = state; });
   document.querySelectorAll('input[type="checkbox"]').forEach(b => { b.disabled = state; });
-  const stopBtn = document.getElementById('stopBtn');
-  if (stopBtn) stopBtn.classList.toggle('show', state);
+  document.getElementById('stopRow')?.classList.toggle('show', state);
 }
 
 function setFlowStep(agentName) {
