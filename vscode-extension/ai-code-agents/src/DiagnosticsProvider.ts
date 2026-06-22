@@ -62,17 +62,33 @@ export class DiagnosticsProvider {
   }
 
   private parseRange(linesRaw: string): vscode.Range {
-    const match = linesRaw.match(/^(\d+)(?::(\d+))?(?:-(\d+)(?::(\d+))?)?$/);
-    if (!match) {
-      return new vscode.Range(0, 0, 0, 999);
+    const cleaned = linesRaw
+      .replace(/^l(?:ine)?\s*/i, "")
+      .replace(/[–—]/g, "-");
+
+    const single = cleaned.match(/^(\d+)$/);
+    if (single) {
+      const line = Math.max(0, parseInt(single[1]) - 1);
+      return new vscode.Range(line, 0, line, 999);
     }
 
-    const startLine = Math.max(0, parseInt(match[1]) - 1);
-    const startChar = match[2] ? parseInt(match[2]) - 1 : 0;
-    const endLine = match[3] ? Math.max(0, parseInt(match[3]) - 1) : startLine;
-    const endChar = match[4] ? parseInt(match[4]) - 1 : 999;
+    const rangeMatch = cleaned.match(/^(\d+)\s*[-–—]\s*(\d+)$/);
+    if (rangeMatch) {
+      const start = Math.max(0, parseInt(rangeMatch[1]) - 1);
+      const end = Math.max(0, parseInt(rangeMatch[2]) - 1);
+      return new vscode.Range(start, 0, end, 999);
+    }
 
-    return new vscode.Range(startLine, startChar, endLine, endChar);
+    const full = cleaned.match(/^(\d+):(\d+)(?:\s*[-–—]\s*(\d+):(\d+))?$/);
+    if (full) {
+      const startLine = Math.max(0, parseInt(full[1]) - 1);
+      const startChar = Math.max(0, parseInt(full[2]) - 1);
+      const endLine = full[3] ? Math.max(0, parseInt(full[3]) - 1) : startLine;
+      const endChar = full[4] ? parseInt(full[4]) - 1 : 999;
+      return new vscode.Range(startLine, startChar, endLine, endChar);
+    }
+
+    return new vscode.Range(0, 0, 0, 999);
   }
 
   private mapSeverity(severity: string): vscode.DiagnosticSeverity {
