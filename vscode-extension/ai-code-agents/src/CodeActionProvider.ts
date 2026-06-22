@@ -1,7 +1,18 @@
 import * as vscode from "vscode";
 import * as fs from "fs";
 import * as path from "path";
-import { AgentRunner } from "./AgentRunner";
+
+function appendLearningEvent(root: string, event: Record<string, unknown>) {
+  try {
+    const dir = path.join(root, ".ai-learning");
+    const file = path.join(dir, "events.ndjson");
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    const line = JSON.stringify({ ...event, timestamp: new Date().toISOString() }) + "\n";
+    fs.appendFileSync(file, line, "utf8");
+  } catch {
+    // silently fail
+  }
+}
 
 export class AIReviewCodeActionProvider implements vscode.CodeActionProvider {
   public static readonly providedCodeActionKinds = [vscode.CodeActionKind.QuickFix];
@@ -67,6 +78,8 @@ export function registerIgnoreCommand(context: vscode.ExtensionContext, outputCh
         fs.writeFileSync(ignoreFile, lines.join("\n") + "\n");
         outputChannel.appendLine(`⏭ Ignored: ${cat} in ${path.relative(root, file)}:${line}`);
         vscode.window.showInformationMessage("Issue ignored. Added to .ai-reviewer-ignore");
+
+        appendLearningEvent(root, { type: "finding_ignored", category: cat, file, line, issue });
       } catch (err: any) {
         vscode.window.showErrorMessage(`Failed to ignore: ${err.message}`);
       }

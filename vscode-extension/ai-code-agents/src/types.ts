@@ -6,7 +6,8 @@ export type AgentName =
   | "fixer-agent"
   | "test-agent"
   | "commit-agent"
-  | "orchestrator";
+  | "orchestrator"
+  | "learn-agent";
 
 export type AgentCategory = "scan" | "review" | "fix" | "test" | "commit" | "pipeline";
 
@@ -28,6 +29,7 @@ export const ALL_AGENTS: Record<AgentName, AgentDef> = {
   "test-agent":          { cli: "test-agent",           label: "Generate Tests",       icon: "🧪", category: "test",    needsApiKey: true,  defaultArgs: ["--apply"] },
   "commit-agent":        { cli: "commit-agent",         label: "Generate Commit",      icon: "💬", category: "commit",  needsApiKey: true,  defaultArgs: ["--staged"] },
   "orchestrator":        { cli: "orchestrator",         label: "Full Pipeline",        icon: "🚀", category: "pipeline",needsApiKey: false, defaultArgs: [] },
+  "learn-agent":         { cli: "learn-agent",          label: "Learning Status",      icon: "🧠", category: "scan",    needsApiKey: false, defaultArgs: [] },
 };
 
 export interface RunOptions {

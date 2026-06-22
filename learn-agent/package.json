@@ -1,0 +1,15 @@
+{
+  "name": "learn-agent",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "learn-agent": "./scripts/ai-learner.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "node scripts/ai-learner.mjs"
+  }
+}

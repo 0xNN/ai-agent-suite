@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, mkdirSync, appendFileSync } from "node:fs";
 import { readFile, writeFile, readdir } from "node:fs/promises";
 import path from "node:path";
 import process from "node:process";
@@ -12,6 +12,7 @@ const root = pathArg ? path.resolve(pathArg) : process.cwd();
 const dryRun = process.argv.includes("--dry-run");
 const applyFixes = process.argv.includes("--apply");
 const diffMode = process.argv.includes("--diff");
+const learnMode = process.argv.includes("--learn");
 const reportArg = process.argv.find((arg) => arg.startsWith("--report="))?.slice("--report=".length);
 const customPrompt = process.argv.find((arg) => arg.startsWith("--prompt="))?.slice("--prompt=".length);
 const shellEnvKeys = new Set(Object.keys(process.env));
@@ -85,6 +86,11 @@ for (const [file, fileFindings] of grouped) {
     if (applyFixes) {
       await writeFile(absolutePath, cleaned, "utf8");
       console.log(`    ✓ Fixed`);
+      if (learnMode) {
+        for (const f of fileFindings) {
+          appendLearningEvent(root, { type: "fix_applied", category: f.category, file: absolutePath, issue: f.issue, lines: f.lines });
+        }
+      }
     } else if (diffMode) {
       console.log(`\n## DIFF: ${absolutePath}`);
       console.log(`--- a/${absolutePath}`);
@@ -177,6 +183,16 @@ function addLineNumbers(content) {
 
 function cleanCodeBlock(text) {
   return text.replace(/^```[\w]*\s*\n/gm, "").replace(/\n```\s*$/g, "").trim();
+}
+
+function appendLearningEvent(root, event) {
+  try {
+    const dir = path.join(root, ".ai-learning");
+    const file = path.join(dir, "events.ndjson");
+    mkdirSync(dir, { recursive: true });
+    const line = JSON.stringify({ ...event, timestamp: new Date().toISOString() }) + "\n";
+    appendFileSync(file, line, "utf8");
+  } catch {}
 }
 
 function showDiff(file, original, fixed) {

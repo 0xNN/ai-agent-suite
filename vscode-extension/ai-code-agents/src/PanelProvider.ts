@@ -404,6 +404,7 @@ body {
     <div class="actions">
       <button class="btn btn-subtle" onclick="openSettings()"><span class="btn-icon">⚙</span> Extension Settings</button>
       <button class="btn btn-subtle" onclick="toggleWatch()" id="watchBtn"><span class="btn-icon" id="watchIcon">👁</span> Watch Mode: <span id="watchState">OFF</span></button>
+      <button class="btn btn-subtle" onclick="run('learn-agent')"><span class="btn-icon">🧠</span> Learning Status</button>
     </div>
   </div>
 </div>

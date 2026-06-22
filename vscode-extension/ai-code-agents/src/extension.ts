@@ -124,12 +124,12 @@ vscode.commands.executeCommand("workbench.action.openSettings", "AI Code Agents"
       await runAgent("tasker-agent", ["--dry-run"], panelProvider);
     }),
     vscode.commands.registerCommand("aiCodeAgents.fixAll", async () => {
-      await runAgent("fixer-agent", ["--apply"], panelProvider);
+      await runAgent("fixer-agent", ["--apply", "--learn"], panelProvider);
     }),
     vscode.commands.registerCommand("aiCodeAgents.fixFile", async () => {
       const file = vscode.window.activeTextEditor?.document.uri.fsPath;
       if (!file) { vscode.window.showWarningMessage("Open a file first."); return; }
-      await runAgent("fixer-agent", ["--apply", `--path="${file}"`], panelProvider);
+      await runAgent("fixer-agent", ["--apply", "--learn", `--path="${file}"`], panelProvider);
     }),
     vscode.commands.registerCommand("aiCodeAgents.fixFileWithPreview", async () => {
       const file = vscode.window.activeTextEditor?.document.uri.fsPath;
@@ -169,6 +169,24 @@ vscode.commands.executeCommand("workbench.action.openSettings", "AI Code Agents"
       if (ignoredExts.includes(ext)) return;
 
       await runAgent("diff-reviewer", [], panelProvider, { silent: true });
+    })
+  );
+
+  context.subscriptions.push(
+    vscode.workspace.onDidChangeConfiguration((e) => {
+      if (e.affectsConfiguration("aiCodeAgents")) {
+        const root = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+        if (!root) return;
+        const supFile = path.join(root, ".ai-learning", "suppressions.json");
+        if (fs.existsSync(supFile)) {
+          try {
+            const suppressions = JSON.parse(fs.readFileSync(supFile, "utf8"));
+            if (Array.isArray(suppressions) && suppressions.length > 0) {
+              outputChannel.appendLine(`[learn] ${suppressions.length} suppression(s) active`);
+            }
+          } catch {}
+        }
+      }
     })
   );
 
@@ -482,5 +500,15 @@ async function fixSelectedTasks(taskIds: number[], panel: PanelProvider) {
 
   const ids = taskIds.join(",");
   outputChannel.appendLine(`\n▶ Fixing selected tasks: ${ids}`);
-  await runAgent("tasker-agent", ["--apply", `--task=${ids}`], panel);
+  await runAgent("tasker-agent", ["--apply", "--learn", `--task=${ids}`], panel);
+}
+
+function appendLearningEvent(root: string, event: Record<string, unknown>) {
+  try {
+    const dir = path.join(root, ".ai-learning");
+    const file = path.join(dir, "events.ndjson");
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    const line = JSON.stringify({ ...event, timestamp: new Date().toISOString() }) + "\n";
+    fs.appendFileSync(file, line, "utf8");
+  } catch {}
 }
