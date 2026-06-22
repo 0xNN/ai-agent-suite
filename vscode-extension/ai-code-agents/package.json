@@ -25,7 +25,7 @@
         {
           "type": "webview",
           "id": "aiCodeAgents.panel",
-          "name": "Agents"
+          "name": "Agents (by Sendi)"
         }
       ]
     },
