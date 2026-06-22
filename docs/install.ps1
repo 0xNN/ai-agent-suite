@@ -16,7 +16,8 @@ $Agents = @(
   "fixer-agent",
   "test-agent",
   "commit-agent",
-  "orchestrator-agent"
+  "orchestrator-agent",
+  "learn-agent"
 )
 
 $ExtDir = "$Root\vscode-extension\ai-code-agents"

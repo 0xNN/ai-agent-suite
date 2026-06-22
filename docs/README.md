@@ -57,6 +57,7 @@ Integrated directly into VS Code — no terminal needed.
 | Full Pipeline | 🚀 Run Full Pipeline | — | — |
 | Toggle Watch Mode | ⚙ Watch Mode: ON/OFF | — | — |
 | Open Extension Settings | ⚙ Extension Settings | — | — |
+| Learning Status | 🧠 Learning Status | — | — |
 
 ### Sidebar Panel
 
@@ -130,6 +131,33 @@ Fallback chain per agent: `agentDefaults[agent]` → global `provider`/`model`/`
 
 > All providers must be OpenAI-compatible (`/v1/chat/completions`). Anthropic requires an OpenAI-compatible proxy. Explicit `model`/`baseUrl` settings override provider presets. Empty values fall back to `.env`.
 
+### Adaptive Learning
+
+The **learn-agent** tracks fix/ignore/revert history in `.ai-learning/events.ndjson` and builds confidence scores per finding category.
+
+```bash
+# Show learning status and stats
+learn-agent
+
+# Analyze history → update confidence scores
+learn-agent --analyze
+
+# Suggest categories to suppress (low confidence)
+learn-agent --suggest
+
+# Suppress a category globally
+learn-agent --forget --category=console.log
+```
+
+**How it works:**
+1. Fixer-agent (`--learn` flag) logs `fix_applied` events
+2. Code actions "Ignore" logs `finding_ignored` events  
+3. `learn-agent --analyze` computes confidence per category
+4. `learn-agent --suggest` recommends categories with <30% confidence for suppression
+5. Suppressed categories are deprioritized by scan/review agents
+
+**No API key needed** — 100% offline, file-based.
+
 ### Manual VSIX Install
 
 ```bash
@@ -154,6 +182,7 @@ code --install-extension ai-code-agents-0.1.0.vsix
 | **commit-agent** | `commit-agent` | Git diff → conventional commit message | Yes | Yes |
 | **orchestrator** | `orchestrator` | Run full pipeline: review → fix → test → commit | No | No |
 | **diff-reviewer** | `diff-reviewer` | Review only changed code (git diff) | Yes | Yes |
+| **learn-agent** | `learn-agent` | Adaptive learning — analyze fix history, suggest suppressions | No | No |
 
 ---
 
@@ -171,6 +200,7 @@ cd test-agent              && npm install -g .
 cd commit-agent            && npm install -g .
 cd diff-reviewer-agent     && npm install -g .
 cd orchestrator-agent      && npm install -g .
+cd learn-agent             && npm install -g .
 ```
 
 ### Platform notes

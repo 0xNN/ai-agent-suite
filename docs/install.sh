@@ -19,6 +19,7 @@ AGENTS=(
   "test-agent"
   "commit-agent"
   "orchestrator-agent"
+  "learn-agent"
 )
 
 EXT_DIR="$ROOT/vscode-extension/ai-code-agents"
