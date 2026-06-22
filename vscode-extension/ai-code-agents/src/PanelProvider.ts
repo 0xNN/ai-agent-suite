@@ -96,6 +96,23 @@ body {
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 
+.stop-btn {
+  display: none;
+  margin-left: auto;
+  background: var(--vscode-inputValidation-errorBackground);
+  border: 1px solid var(--vscode-inputValidation-errorBorder);
+  color: var(--vscode-errorForeground);
+  border-radius: 4px;
+  padding: 2px 8px;
+  cursor: pointer;
+  font-size: 13px;
+  line-height: 1.4;
+  flex-shrink: 0;
+  transition: opacity 0.15s;
+}
+.stop-btn:hover { opacity: 0.8; }
+.stop-btn.show { display: inline-block; }
+
 /* ─── Pipeline Flow ─── */
 .flow {
   display: flex;
@@ -349,7 +366,7 @@ body {
 </head>
 <body>
 
-<div id="statusBar" class="status-bar"></div>
+<div id="statusBar" class="status-bar"><button id="stopBtn" class="stop-btn" onclick="cancel()" title="Stop">⏹</button></div>
 
   <div class="flow" id="flowBar">
   <span class="step" data-step="scan">Scan</span>
@@ -425,7 +442,7 @@ body {
   <div class="log-box" id="logBox"></div>
 </div>
 
-<div class="legend">Ctrl+Shift+R · D · X · C</div>
+<div class="legend">Ctrl+Shift+R · D · X · P · Esc · C</div>
 
 <script>
 const vscode = acquireVsCodeApi();
@@ -436,6 +453,10 @@ let running = false;
 function run(agent, args) {
   if (running) return;
   vscode.postMessage({ type: 'run', agent, args: args || [] });
+}
+
+function cancel() {
+  vscode.postMessage({ type: 'cancel' });
 }
 
 function openSettings() {
@@ -450,6 +471,8 @@ function setRunning(state) {
   running = state;
   document.querySelectorAll('.btn').forEach(b => { b.disabled = state; });
   document.querySelectorAll('input[type="checkbox"]').forEach(b => { b.disabled = state; });
+  const stopBtn = document.getElementById('stopBtn');
+  if (stopBtn) stopBtn.classList.toggle('show', state);
 }
 
 function setFlowStep(agentName) {

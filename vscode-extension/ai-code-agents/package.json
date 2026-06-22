@@ -63,6 +63,7 @@
       { "command": "aiCodeAgents.diffReview",      "key": "ctrl+shift+d", "mac": "cmd+shift+d", "when": "editorFocus" },
       { "command": "aiCodeAgents.fixAll",          "key": "ctrl+shift+x", "mac": "cmd+shift+x", "when": "editorFocus" },
       { "command": "aiCodeAgents.fixFileWithPreview", "key": "ctrl+shift+p", "mac": "cmd+shift+p", "when": "editorFocus" },
+      { "command": "aiCodeAgents.cancel",          "key": "ctrl+shift+escape", "mac": "cmd+shift+escape", "when": "editorFocus" },
       { "command": "aiCodeAgents.generateCommit",  "key": "ctrl+shift+c", "mac": "cmd+shift+c", "when": "editorFocus" }
     ],
     "configuration": {
