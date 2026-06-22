@@ -643,6 +643,45 @@ The tasker decides **which** tasks to fix (`--task=1,3` or `--apply` for all). T
 
 ---
 
+## GitHub CI Integration
+
+Every PR to `main`/`master` is automatically reviewed — **developer tidak bisa merge** tanpa lulus AI review.
+
+### Setup (sekali)
+
+1. **Tambah Secrets** di GitHub → `Settings → Secrets → Actions`:
+   - `CODE_REVIEW_API_KEY` — API key untuk AI review (required)
+   - `CODE_REVIEW_MODEL` — model override (optional)
+   - `CODE_REVIEW_BASE_URL` — base URL override (optional)
+
+2. **Copy workflow** ke repo project:
+   ```bash
+   cp ai-agent-suite/.github/workflows/ai-review.yml project/.github/workflows/
+   ```
+
+3. **Branch protection** → `Settings → Branches`:
+   - ☑ Require status checks to pass before merging
+   - Pilih "AI Code Review"
+
+4. **Buat PR** → workflow jalan otomatis → comment hasil review di PR
+
+Lihat [`docs/CI.md`](./CI.md) untuk detail lengkap.
+
+### Flow
+
+```
+Developer push → GitHub Actions trigger
+    ↓
+Install agents (~15s) → Scan (~5s) → AI Review (~30-60s)
+    ↓
+PR comment + Status check (✅ passed / ❌ failed)
+    ↓
+❌ Failed → Merge button abu-abu, wajib fix
+✅ Passed → Bisa merge
+```
+
+---
+
 ## Architecture
 
 ```
@@ -674,6 +713,10 @@ The tasker decides **which** tasks to fix (`--task=1,3` or `--apply` for all). T
 │   └── skills/SKILL.md
 ├── orchestrator-agent/     (pipeline coordinator, no AI)
 │   └── scripts/orchestrator.mjs
+├── learn-agent/            (adaptive learning, 100% offline)
+│   └── scripts/ai-learner.mjs
+├── .github/workflows/      (GitHub Actions CI)
+│   └── ai-review.yml
 └── vscode-extension/
     └── ai-code-agents/     (VS Code extension)
         ├── src/

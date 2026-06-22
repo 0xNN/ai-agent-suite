@@ -2,6 +2,7 @@
 import { execSync } from "node:child_process";
 import path from "node:path";
 import { createInterface } from "node:readline";
+import { existsSync, readFileSync, writeFileSync, readdirSync } from "node:fs";
 import process from "node:process";
 
 const pathArg = process.argv.find((arg) => arg.startsWith("--path="))?.slice("--path=".length);
@@ -10,6 +11,7 @@ const skipArg = process.argv.find((arg) => arg.startsWith("--skip="))?.slice("--
 const interactive = process.argv.includes("--interactive");
 const dryRun = process.argv.includes("--dry-run");
 const taskSelect = process.argv.find((arg) => arg.startsWith("--task="))?.slice("--task=".length);
+const ciMode = process.argv.includes("--ci");
 const skipSet = new Set(skipArg ? skipArg.split(",").map((s) => s.trim().toLowerCase()) : []);
 
 const steps = [
@@ -18,49 +20,99 @@ const steps = [
   { name: "task",   cli: `tasker-agent` },
   { name: "fix",    cli: `tasker-agent ${taskSelect ? `--task=${taskSelect}` : ""} --apply` },
   { name: "test",   cli: `test-agent --apply` },
-  { name: "commit", cli: `commit-agent --staged --commit` },
 ];
+
+function say(msg) {
+  if (!ciMode) console.log(msg);
+}
+
+function sayErr(msg) {
+  console.error(msg);
+}
 
 printPlan(steps, skipSet, root);
 
 if (dryRun) process.exit(0);
 
-const rl = interactive ? createInterface({ input: process.stdin, output: process.stdout }) : null;
+const rl = interactive && !ciMode ? createInterface({ input: process.stdin, output: process.stdout }) : null;
+let hasFailures = false;
 
 for (const step of steps) {
   if (skipSet.has(step.name)) {
-    console.log(`  ⏭ Skipped`);
+    say(`  ⏭ Skipped`);
     continue;
   }
 
   if (rl) {
     const answer = await ask(rl, `\n  ? Run "${step.cli}"? (Y/n) `);
     if (answer === "n" || answer === "no") {
-      console.log(`  ⏭ Skipped`);
+      say(`  ⏭ Skipped`);
       continue;
     }
   }
 
-  console.log(`\n\x1b[36m── ${step.name} ──────────────────────────────────\x1b[0m\n`);
+  say(`\n── ${step.name} ──────────────────────────────────\n`);
 
   try {
-    execSync(step.cli, { cwd: root, stdio: "inherit", shell: true });
+    execSync(step.cli, { cwd: root, stdio: ciMode ? "pipe" : "inherit", shell: true });
+    say(`  ✓ ${step.name} passed`);
   } catch {
-    console.error(`\n  ✗ "${step.name}" failed. Stopping pipeline.`);
-    process.exit(1);
+    sayErr(`  ✗ "${step.name}" failed. Stopping pipeline.`);
+    hasFailures = true;
+    break;
   }
 }
 
 if (rl) rl.close();
 
-console.log(`\n\x1b[32m✓ Pipeline complete.\x1b[0m`);
+// ─── CI Summary ───
+if (ciMode) {
+  const reportFiles = findReports(root, "ai-review-report");
+  const scanFiles = findReports(root, "ai-scan-report");
+  const results = { passed: !hasFailures, scan: 0, review: 0 };
+
+  for (const rf of [...reportFiles, ...scanFiles]) {
+    try {
+      const content = readFileSync(rf, "utf8");
+      const findingLines = content.split("\n").filter((l) => l.trim().startsWith("|") && !l.includes("---") && !l.includes("Severity"));
+      const count = findingLines.length;
+      if (rf.includes("review")) results.review += count;
+      else results.scan += count;
+    } catch {}
+  }
+
+  const summaryPath = path.join(root, "ai-ci-summary.json");
+  writeFileSync(summaryPath, JSON.stringify(results, null, 2) + "\n", "utf8");
+  console.log(JSON.stringify(results));
+
+  if (results.scan > 0 || results.review > 0) {
+    sayErr(`\n✗ ${results.review} review finding(s), ${results.scan} scan finding(s) found.`);
+  }
+
+  process.exit(results.scan > 0 || results.review > 0 ? 1 : 0);
+}
+
+if (hasFailures) process.exit(1);
+
+say(`\n✓ Pipeline complete.`);
+
+function findReports(baseDir, prefix) {
+  try {
+      const entries = readdirSync(baseDir);
+    return entries
+      .filter((f) => new RegExp(`^${prefix}-\\d{4}-\\d{2}-\\d{2}T.*\\.md$`).test(f))
+      .sort()
+      .reverse()
+      .map((f) => path.join(baseDir, f));
+  } catch { return []; }
+}
 
 function printPlan(steps, skipSet, root) {
   const active = steps.filter((s) => !skipSet.has(s.name));
-  console.log(`\n\x1b[1mOrchestrator Pipeline\x1b[0m`);
-  console.log(`  Path: ${root}`);
-  console.log(`  Steps: ${active.map((s) => s.name).join(" → ")}\n`);
-  if (skipSet.size > 0) console.log(`  Skipped: ${[...skipSet].join(", ")}\n`);
+  say(`\nOrchestrator Pipeline`);
+  say(`  Path: ${root}`);
+  say(`  Steps: ${active.map((s) => s.name).join(" → ")}\n`);
+  if (skipSet.size > 0) say(`  Skipped: ${[...skipSet].join(", ")}\n`);
 }
 
 function ask(rl, question) {

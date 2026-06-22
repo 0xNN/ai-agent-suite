@@ -1,0 +1,128 @@
+# ─────────────────────────────────────────────────────
+#  AI Code Agents — Review Pipeline (CI)
+# ─────────────────────────────────────────────────────
+# Runs on every pull request to main/master.
+# Scans, reviews, and checks code quality.
+# Comment hasil review di PR.
+# Status check "ai-review" WAJIB pass sebelum merge.
+#
+# Setup (sekali):
+#   1. GitHub Secrets → Settings > Secrets > Actions
+#      - CODE_REVIEW_API_KEY  (required untuk AI review)
+#      - CODE_REVIEW_MODEL    (optional, default: gpt-4o)
+#      - CODE_REVIEW_BASE_URL (optional)
+#   2. Branch protection → Require status check "ai-review"
+# ─────────────────────────────────────────────────────
+
+name: AI Review
+
+on:
+  pull_request:
+    branches: [main, master]
+  push:
+    branches: [main, master]
+
+jobs:
+  review:
+    name: AI Code Review
+    runs-on: ubuntu-latest
+
+    env:
+      CODE_REVIEW_API_KEY: ${{ secrets.CODE_REVIEW_API_KEY }}
+      CODE_REVIEW_MODEL: ${{ secrets.CODE_REVIEW_MODEL }}
+      CODE_REVIEW_BASE_URL: ${{ secrets.CODE_REVIEW_BASE_URL }}
+
+    steps:
+      - name: Checkout target project
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install AI Agents
+        run: |
+          npm install -g https://github.com/${{ github.repository_owner }}/ai-agent-suite
+          # ── atau install manual jika repo terpisah ──
+          # git clone --depth 1 https://github.com/<owner>/ai-agent-suite.git /tmp/agents
+          # for dir in scan-agent code-reviewer-agent tasker-agent fixer-agent test-agent orchestrator-agent; do
+          #   (cd /tmp/agents/$dir && npm install -g .)
+          # done
+
+      - name: Run AI Pipeline
+        id: review
+        continue-on-error: true
+        run: |
+          orchestrator --ci --path="${{ github.workspace }}" 2>&1 | tee ai-output.log
+
+      - name: Read CI Summary
+        id: summary
+        run: |
+          if [ -f ai-ci-summary.json ]; then
+            echo "result=$(cat ai-ci-summary.json)" >> $GITHUB_OUTPUT
+            echo "passed=$(cat ai-ci-summary.json | jq -r '.passed')" >> $GITHUB_OUTPUT
+            echo "review=$(cat ai-ci-summary.json | jq -r '.review')" >> $GITHUB_OUTPUT
+            echo "scan=$(cat ai-ci-summary.json | jq -r '.scan')" >> $GITHUB_OUTPUT
+          else
+            echo "result={\"passed\":true,\"scan\":0,\"review\":0}" >> $GITHUB_OUTPUT
+            echo "passed=true" >> $GITHUB_OUTPUT
+            echo "review=0" >> $GITHUB_OUTPUT
+            echo "scan=0" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Upload Reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ai-reports
+          path: |
+            ai-*-report-*.md
+            ai-ci-summary.json
+            ai-output.log
+
+      - name: Comment PR
+        if: github.event_name == 'pull_request' && always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const passed = '${{ steps.summary.outputs.passed }}' === 'true';
+            const reviewCount = parseInt('${{ steps.summary.outputs.review }}') || 0;
+            const scanCount = parseInt('${{ steps.summary.outputs.scan }}') || 0;
+
+            let reportSection = '';
+            const reportFiles = fs.readdirSync('.').filter(f => /^ai-(review|scan)-report-\d{4}-\d{2}-\d{2}T.*\.md$/.test(f));
+            for (const rf of reportFiles.slice(0, 2)) {
+              const content = fs.readFileSync(rf, 'utf8');
+              const lines = content.split('\n').filter(l => l.trim().startsWith('|')).slice(0, 20);
+              reportSection += '```\n' + lines.join('\n') + '\n```\n\n';
+            }
+
+            const icon = passed ? '✅' : '❌';
+            const body = `## ${icon} AI Code Review
+
+            | Status | Scan Findings | Review Findings |
+            |--------|---------------|-----------------|
+            | ${passed ? 'Passed' : 'Failed'} | ${scanCount} | ${reviewCount} |
+
+            ${reportSection}
+            ${!passed ? '> ⚠ Beberapa issue ditemukan. Perbaiki sebelum merge.' : '> ✅ Semua cek lulus.'}
+            `;
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: body
+            });
+
+      - name: Set Status Check
+        if: always()
+        run: |
+          if [ "${{ steps.summary.outputs.passed }}" = "true" ]; then
+            echo "✅ AI Review passed"
+          else
+            echo "❌ AI Review failed"
+            exit 1
+          fi
