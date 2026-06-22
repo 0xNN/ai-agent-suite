@@ -381,9 +381,10 @@ async function callOpenAICompatible({ apiKey, baseUrl, model, instructions, inpu
       fail("LLM API response did not contain readable output text.");
     } catch (error) {
       if (!useStream) { lastError = error; }
+      const cause = error?.cause?.message || error?.message || error?.code || String(error);
       if (attempt < maxRetries) {
         const delay = Math.pow(2, attempt) * 1000;
-        console.warn(`LLM API request failed, retrying in ${delay}ms...`);
+        console.warn(`LLM API request failed (${cause}), retrying in ${delay}ms...`);
         await new Promise(r => setTimeout(r, delay));
         continue;
       }
@@ -391,7 +392,10 @@ async function callOpenAICompatible({ apiKey, baseUrl, model, instructions, inpu
     }
   }
 
-  fail(`LLM API request failed after ${maxRetries + 1} attempts: ${lastError?.message ?? "unknown error"}`);
+  const cause = lastError?.cause?.message || lastError?.message || lastError?.code || "unknown error";
+  console.error(`\n✗ Endpoint: ${endpoint}`);
+  console.error(`✗ Model: ${model}`);
+  fail(`LLM API request failed after ${maxRetries + 1} attempts: ${cause}`);
 }
 
 async function readStream(response, loader) {
