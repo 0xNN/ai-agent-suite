@@ -9,6 +9,7 @@ import { PanelProvider } from "./PanelProvider";
 import { AgentName, ALL_AGENTS, AiTasksData } from "./types";
 import { AIReviewCodeActionProvider, registerIgnoreCommand } from "./CodeActionProvider";
 import { WatchManager } from "./WatchManager";
+import { agentsAvailable, installAgents, resolveAgentScript } from "./setupAgents";
 
 let outputChannel: vscode.OutputChannel;
 let runner: AgentRunner;
@@ -37,11 +38,8 @@ function showNodeError(version: string | null) {
   });
 }
 
-export function activate(context: vscode.ExtensionContext) {
+export async function activate(context: vscode.ExtensionContext) {
   outputChannel = vscode.window.createOutputChannel("AI Code Agents");
-  runner = new AgentRunner(outputChannel);
-  diagnostics = new DiagnosticsProvider();
-  statusBar = new StatusBarManager();
 
   const nodeCheck = checkNodeVersion();
   nodeOk = nodeCheck.ok;
@@ -52,6 +50,25 @@ export function activate(context: vscode.ExtensionContext) {
     showNodeError(nodeCheck.version);
     statusBar.setState("error", nodeCheck.version ? `Node ${nodeCheck.version} too old` : "Node.js not found");
   }
+
+  if (nodeOk) {
+    if (!agentsAvailable()) {
+      outputChannel.appendLine("AI Code Agents: Installing agents...");
+      const installed = await installAgents(context);
+      if (installed) {
+        outputChannel.appendLine("AI Code Agents: Agents installed successfully. ✓");
+        vscode.window.showInformationMessage("AI Code Agents: Agents installed. Ready to use.");
+      } else {
+        outputChannel.appendLine("AI Code Agents: Agent installation failed.");
+      }
+    } else {
+      outputChannel.appendLine("AI Code Agents: Agents already installed. ✓");
+    }
+  }
+
+  runner = new AgentRunner(outputChannel, context);
+  diagnostics = new DiagnosticsProvider();
+  statusBar = new StatusBarManager();
 
   const panelProvider = new PanelProvider();
   context.subscriptions.push(

@@ -2,6 +2,7 @@ import { spawn } from "child_process";
 import * as path from "path";
 import * as vscode from "vscode";
 import { AgentName, RunOptions, RunResult } from "./types";
+import { resolveAgentScript } from "./setupAgents";
 
 const ansiRegex = /[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g;
 
@@ -18,17 +19,24 @@ interface AgentDefaults {
 export class AgentRunner {
   private outputChannel: vscode.OutputChannel;
   private lineBuffer = "";
+  private context: vscode.ExtensionContext;
 
-  constructor(outputChannel: vscode.OutputChannel) {
+  constructor(outputChannel: vscode.OutputChannel, context: vscode.ExtensionContext) {
     this.outputChannel = outputChannel;
+    this.context = context;
   }
 
-  private resolveCommand(agent: AgentName): { command: string; shell: boolean } {
+  private resolveCommand(agent: AgentName): { command: string; args: string[]; shell: boolean } {
+    const localScript = resolveAgentScript(agent, this.context);
+    if (localScript) {
+      return { command: "node", args: [localScript], shell: false };
+    }
+
     const isWin = process.platform === "win32";
     if (isWin) {
-      return { command: `${agent}.cmd`, shell: true };
+      return { command: `${agent}.cmd`, args: [], shell: true };
     }
-    return { command: agent, shell: false };
+    return { command: agent, args: [], shell: false };
   }
 
   private getAgentDefaults(agent: AgentName): AgentDefaults {
@@ -67,9 +75,10 @@ export class AgentRunner {
     this.outputChannel.appendLine(`   ${agent} ${args.join(" ")}`);
     this.outputChannel.appendLine("─".repeat(60));
 
-    const { command, shell } = this.resolveCommand(agent);
+    const { command, args: resolvedArgs, shell } = this.resolveCommand(agent);
 
     const finalArgs: string[] = [
+      ...resolvedArgs,
       ...args,
       `--path="${workdir}"`,
     ];
@@ -154,7 +163,7 @@ export class AgentRunner {
 
         if ((err as any).code === "ENOENT") {
           this.outputChannel.appendLine(
-            `  → Agent '${agent}' is not installed globally. Run: npm install -g ./${agent}-agent`
+            `  → Agent '${agent}' not found. Restart VS Code to reinstall.`
           );
         }
 
