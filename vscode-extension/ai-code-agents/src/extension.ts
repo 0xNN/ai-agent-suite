@@ -120,7 +120,7 @@ vscode.commands.executeCommand("workbench.action.openSettings", "AI Code Agents"
     vscode.commands.registerCommand("aiCodeAgents.reviewFile", async () => {
       const file = vscode.window.activeTextEditor?.document.uri.fsPath;
       if (!file) { vscode.window.showWarningMessage("Open a file first."); return; }
-      await runAgent("code-reviewer-agent", [`--path="${file}"`], panelProvider);
+      await runAgent("code-reviewer-agent", [`--path=${file}`], panelProvider);
     }),
     vscode.commands.registerCommand("aiCodeAgents.reviewWorkspace", async () => {
       await runAgent("code-reviewer-agent", [], panelProvider);
@@ -137,7 +137,7 @@ vscode.commands.executeCommand("workbench.action.openSettings", "AI Code Agents"
     vscode.commands.registerCommand("aiCodeAgents.fixFile", async () => {
       const file = vscode.window.activeTextEditor?.document.uri.fsPath;
       if (!file) { vscode.window.showWarningMessage("Open a file first."); return; }
-      await runAgent("fixer-agent", ["--apply", "--learn", `--path="${file}"`], panelProvider);
+      await runAgent("fixer-agent", ["--apply", "--learn", `--path=${file}`], panelProvider);
     }),
     vscode.commands.registerCommand("aiCodeAgents.fixFileWithPreview", async () => {
       const file = vscode.window.activeTextEditor?.document.uri.fsPath;

@@ -80,7 +80,7 @@ export class AgentRunner {
     const finalArgs: string[] = [
       ...resolvedArgs,
       ...args,
-      `--path="${workdir}"`,
+      `--path=${workdir}`,
     ];
 
     if (lang === "id" && agent !== "ai-scanner" && agent !== "orchestrator") {
