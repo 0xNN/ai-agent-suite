@@ -326,13 +326,13 @@ async function runFixerForTasks(tasks, contextFindings) {
 
       try {
         const fixerScript = path.join(agentBase, "fixer-agent", "scripts", "ai-fixer.mjs");
-        execSync(`node "${fixerScript}" --apply --report=".tasker-temp-report.md" --path="${root}"`, {
+        execSync(`node "${fixerScript}" --apply --report=.tasker-temp-report.md --path=${root}`, {
           stdio: "inherit",
         });
         console.log(`  Generating tests for ${file}...`);
         try {
           const testScript = path.join(agentBase, "test-agent", "scripts", "ai-test-agent.mjs");
-          execSync(`node "${testScript}" --apply --report=".tasker-temp-report.md" --path="${root}"`, {
+          execSync(`node "${testScript}" --apply --report=.tasker-temp-report.md --path=${root}`, {
             stdio: "inherit",
           });
         } catch {

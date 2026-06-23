@@ -5,7 +5,7 @@ const path = require("path");
 
 const ROOT = path.resolve(__dirname, "..");
 const AGENTS_DIR = path.join(ROOT, "agents");
-const REPO_ROOT = path.resolve(ROOT, "..", "..", "..");
+const REPO_ROOT = path.resolve(ROOT, "..", "..");
 
 const AGENT_LIST = [
   "scan-agent", "code-reviewer-agent", "commit-agent", "diff-reviewer-agent",
