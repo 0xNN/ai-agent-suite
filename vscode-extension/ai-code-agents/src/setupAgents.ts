@@ -1,85 +1,26 @@
 import * as vscode from "vscode";
-import { execSync } from "child_process";
 import * as fs from "fs";
 import * as path from "path";
 
-const AGENTS_REPO = "https://github.com/0xNN/ai-agent-suite.git";
-const AGENT_NAMES = [
-  "scan-agent", "code-reviewer-agent", "commit-agent", "diff-reviewer-agent",
-  "fixer-agent", "learn-agent", "orchestrator-agent", "tasker-agent", "test-agent",
-];
-
-const AGENT_BINS: Record<string, string[]> = {
-  "scan-agent": ["ai-scanner", "scan-agent"],
-  "code-reviewer-agent": ["code-reviewer-agent"],
-  "commit-agent": ["commit-agent"],
-  "diff-reviewer-agent": ["diff-reviewer"],
-  "fixer-agent": ["fixer-agent"],
-  "learn-agent": ["learn-agent"],
-  "orchestrator-agent": ["orchestrator"],
-  "tasker-agent": ["tasker-agent"],
-  "test-agent": ["test-agent"],
-};
-
-function getAgentDir(context: vscode.ExtensionContext): string {
-  return path.join(context.globalStorageUri.fsPath, "agents");
-}
-
-function binExists(binName: string): boolean {
-  try {
-    const cmd = process.platform === "win32" ? `where ${binName}` : `which ${binName}`;
-    execSync(cmd, { encoding: "utf8", timeout: 3000 });
-    return true;
-  } catch {
-    return false;
-  }
+function getAgentsDir(context: vscode.ExtensionContext): string {
+  return path.join(context.extensionUri.fsPath, "agents");
 }
 
 export function agentsAvailable(): boolean {
-  return binExists("ai-scanner");
+  return true;
 }
 
 export async function installAgents(context: vscode.ExtensionContext): Promise<boolean> {
-  const agentDir = getAgentDir(context);
-
-  if (fs.existsSync(agentDir)) {
-    return true;
+  const dir = getAgentsDir(context);
+  const ok = fs.existsSync(dir);
+  if (!ok) {
+    vscode.window.showErrorMessage("AI Code Agents: Agent bundle not found. Reinstall the extension.");
   }
-
-  return vscode.window.withProgress(
-    {
-      location: vscode.ProgressLocation.Notification,
-      title: "AI Code Agents: Installing agents...",
-      cancellable: false,
-    },
-    async (progress) => {
-      try {
-        progress.report({ message: "Cloning repository..." });
-        fs.mkdirSync(agentDir, { recursive: true });
-        execSync(`git clone --depth 1 ${AGENTS_REPO} "${agentDir}"`, {
-          stdio: "pipe",
-          timeout: 120000,
-        });
-
-        for (let i = 0; i < AGENT_NAMES.length; i++) {
-          const name = AGENT_NAMES[i];
-          progress.report({ message: `Installing ${name}...`, increment: Math.round((i / AGENT_NAMES.length) * 100) });
-          const pkgDir = path.join(agentDir, name);
-          execSync("npm install --production", { cwd: pkgDir, stdio: "pipe", timeout: 60000 });
-        }
-
-        return true;
-      } catch (err) {
-        vscode.window.showErrorMessage(`AI Code Agents: Failed to install agents. ${err instanceof Error ? err.message : ""}`);
-        try { fs.rmSync(agentDir, { recursive: true, force: true }); } catch {}
-        return false;
-      }
-    }
-  );
+  return ok;
 }
 
 export function resolveAgentScript(agent: string, context: vscode.ExtensionContext): string | null {
-  const agentDir = getAgentDir(context);
+  const agentDir = getAgentsDir(context);
   const scriptMap: Record<string, string> = {
     "ai-scanner": path.join(agentDir, "scan-agent", "scripts", "ai-scanner.mjs"),
     "scan-agent": path.join(agentDir, "scan-agent", "scripts", "ai-scanner.mjs"),

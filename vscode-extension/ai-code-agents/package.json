@@ -168,9 +168,10 @@
     }
   },
   "scripts": {
-    "compile": "tsc -p ./",
+    "bundle-agents": "node scripts/bundle-agents.js",
+    "compile": "npm run bundle-agents && tsc -p ./",
     "watch": "tsc -watch -p ./",
-    "package": "npx @vscode/vsce package"
+    "package": "npm run compile && npx @vscode/vsce package"
   },
   "devDependencies": {
     "@types/vscode": "^1.85.0",

@@ -46,24 +46,15 @@ export async function activate(context: vscode.ExtensionContext) {
 
   if (nodeOk) {
     outputChannel.appendLine(`AI Code Agents: Node.js ${nodeCheck.version} detected. ✓`);
+    const agentsOk = await installAgents(context);
+    if (agentsOk) {
+      outputChannel.appendLine("AI Code Agents: Agent bundle found. ✓");
+    } else {
+      outputChannel.appendLine("AI Code Agents: Agent bundle not found.");
+    }
   } else {
     showNodeError(nodeCheck.version);
     statusBar.setState("error", nodeCheck.version ? `Node ${nodeCheck.version} too old` : "Node.js not found");
-  }
-
-  if (nodeOk) {
-    if (!agentsAvailable()) {
-      outputChannel.appendLine("AI Code Agents: Installing agents...");
-      const installed = await installAgents(context);
-      if (installed) {
-        outputChannel.appendLine("AI Code Agents: Agents installed successfully. ✓");
-        vscode.window.showInformationMessage("AI Code Agents: Agents installed. Ready to use.");
-      } else {
-        outputChannel.appendLine("AI Code Agents: Agent installation failed.");
-      }
-    } else {
-      outputChannel.appendLine("AI Code Agents: Agents already installed. ✓");
-    }
   }
 
   runner = new AgentRunner(outputChannel, context);

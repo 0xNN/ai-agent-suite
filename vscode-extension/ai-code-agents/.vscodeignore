@@ -1,0 +1,10 @@
+.vscode/**
+.gitignore
+.gitattributes
+.vscodeignore
+node_modules/**
+src/**
+scripts/**
+tsconfig.json
+package-lock.json
+**/.gitkeep
