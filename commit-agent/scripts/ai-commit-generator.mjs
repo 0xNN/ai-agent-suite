@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import process from "node:process";
@@ -52,7 +52,9 @@ console.log("\n" + message + "\n");
 if (autoCommit) {
   try {
     execSync("git add -A", { stdio: "ignore" });
-    execSync(`git commit -m "${message.split("\n")[0].replace(/"/g, '\\"')}"`, { stdio: "inherit" });
+    const msgFile = path.join(process.cwd(), ".git", "COMMIT_EDITMSG");
+    writeFileSync(msgFile, message.split("\n")[0], "utf8");
+    execSync(`git commit -F "${msgFile}"`, { stdio: "inherit" });
     console.log("Committed successfully.");
   } catch (error) {
     fail(`Commit failed: ${error.message}`);

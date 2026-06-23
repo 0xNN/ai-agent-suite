@@ -1,9 +1,26 @@
 #!/usr/bin/env node
 import { execSync } from "node:child_process";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { createInterface } from "node:readline";
 import { existsSync, readFileSync, writeFileSync, readdirSync } from "node:fs";
 import process from "node:process";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const agentBase = path.resolve(__dirname, "..", "..");
+
+const agentScripts = {
+  scan:   path.join(agentBase, "scan-agent", "scripts", "ai-scanner.mjs"),
+  review: path.join(agentBase, "code-reviewer-agent", "scripts", "ai-code-reviewer.mjs"),
+  task:   path.join(agentBase, "tasker-agent", "scripts", "ai-task-generator.mjs"),
+  fix:    path.join(agentBase, "fixer-agent", "scripts", "ai-fixer.mjs"),
+  test:   path.join(agentBase, "test-agent", "scripts", "ai-test-agent.mjs"),
+};
+
+function runScript(scriptPath, args) {
+  const cmd = `node "${scriptPath}" ${args}`;
+  execSync(cmd, { cwd: root, stdio: ciMode ? "pipe" : "inherit" });
+}
 
 const pathArg = process.argv.find((arg) => arg.startsWith("--path="))?.slice("--path=".length);
 const root = pathArg ? path.resolve(pathArg) : process.cwd();
@@ -15,11 +32,11 @@ const ciMode = process.argv.includes("--ci");
 const skipSet = new Set(skipArg ? skipArg.split(",").map((s) => s.trim().toLowerCase()) : []);
 
 const steps = [
-  { name: "scan",   cli: "ai-scanner" },
-  { name: "review", cli: `code-reviewer-agent` },
-  { name: "task",   cli: `tasker-agent` },
-  { name: "fix",    cli: `tasker-agent ${taskSelect ? `--task=${taskSelect}` : ""} --apply` },
-  { name: "test",   cli: `test-agent --apply` },
+  { name: "scan",   run: () => runScript(agentScripts.scan, "") },
+  { name: "review", run: () => runScript(agentScripts.review, "") },
+  { name: "task",   run: () => runScript(agentScripts.task, "") },
+  { name: "fix",    run: () => runScript(agentScripts.fix, `${taskSelect ? `--task=${taskSelect}` : ""} --apply`) },
+  { name: "test",   run: () => runScript(agentScripts.test, "--apply") },
 ];
 
 function say(msg) {
@@ -44,7 +61,7 @@ for (const step of steps) {
   }
 
   if (rl) {
-    const answer = await ask(rl, `\n  ? Run "${step.cli}"? (Y/n) `);
+    const answer = await ask(rl, `\n  ? Run "${step.name}"? (Y/n) `);
     if (answer === "n" || answer === "no") {
       say(`  ⏭ Skipped`);
       continue;
@@ -54,7 +71,7 @@ for (const step of steps) {
   say(`\n── ${step.name} ──────────────────────────────────\n`);
 
   try {
-    execSync(step.cli, { cwd: root, stdio: ciMode ? "pipe" : "inherit", shell: true });
+    step.run();
     say(`  ✓ ${step.name} passed`);
   } catch {
     sayErr(`  ✗ "${step.name}" failed. Stopping pipeline.`);

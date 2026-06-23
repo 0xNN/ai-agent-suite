@@ -8,6 +8,7 @@ import { fileURLToPath } from "node:url";
 import { Loader } from "./_loader.mjs";
 
 const agentRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const agentBase = path.resolve(agentRoot, "..");
 const pathArg = process.argv.find((arg) => arg.startsWith("--path="))?.slice("--path=".length);
 const root = pathArg ? path.resolve(pathArg) : process.cwd();
 const dryRun = process.argv.includes("--dry-run");
@@ -324,15 +325,15 @@ async function runFixerForTasks(tasks, contextFindings) {
       await writeFile(tempReport, reportContent, "utf8");
 
       try {
-        execSync(`fixer-agent --apply --report=".tasker-temp-report.md" --path="${root}"`, {
+        const fixerScript = path.join(agentBase, "fixer-agent", "scripts", "ai-fixer.mjs");
+        execSync(`node "${fixerScript}" --apply --report=".tasker-temp-report.md" --path="${root}"`, {
           stdio: "inherit",
-          shell: true,
         });
         console.log(`  Generating tests for ${file}...`);
         try {
-          execSync(`test-agent --apply --report=".tasker-temp-report.md" --path="${root}"`, {
+          const testScript = path.join(agentBase, "test-agent", "scripts", "ai-test-agent.mjs");
+          execSync(`node "${testScript}" --apply --report=".tasker-temp-report.md" --path="${root}"`, {
             stdio: "inherit",
-            shell: true,
           });
         } catch {
           console.warn(`  [!] Test generation skipped for ${file} (test-agent not installed or failed)`);
