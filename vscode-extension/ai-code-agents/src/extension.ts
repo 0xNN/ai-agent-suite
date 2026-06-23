@@ -9,7 +9,7 @@ import { PanelProvider } from "./PanelProvider";
 import { AgentName, ALL_AGENTS, AiTasksData } from "./types";
 import { AIReviewCodeActionProvider, registerIgnoreCommand } from "./CodeActionProvider";
 import { WatchManager } from "./WatchManager";
-import { agentsAvailable, installAgents, resolveAgentScript } from "./setupAgents";
+import { installAgents, resolveAgentScript, agentsAvailable } from "./setupAgents";
 
 let outputChannel: vscode.OutputChannel;
 let runner: AgentRunner;
@@ -46,15 +46,24 @@ export async function activate(context: vscode.ExtensionContext) {
 
   if (nodeOk) {
     outputChannel.appendLine(`AI Code Agents: Node.js ${nodeCheck.version} detected. ✓`);
-    const agentsOk = await installAgents(context);
-    if (agentsOk) {
-      outputChannel.appendLine("AI Code Agents: Agent bundle found. ✓");
-    } else {
-      outputChannel.appendLine("AI Code Agents: Agent bundle not found.");
-    }
   } else {
     showNodeError(nodeCheck.version);
     statusBar.setState("error", nodeCheck.version ? `Node ${nodeCheck.version} too old` : "Node.js not found");
+  }
+
+  if (nodeOk) {
+    if (!agentsAvailable()) {
+      outputChannel.appendLine("AI Code Agents: Installing agents...");
+      const installed = await installAgents(context);
+      if (installed) {
+        outputChannel.appendLine("AI Code Agents: Agents installed successfully. ✓");
+        vscode.window.showInformationMessage("AI Code Agents: Agents installed. Ready to use.");
+      } else {
+        outputChannel.appendLine("AI Code Agents: Agent installation failed.");
+      }
+    } else {
+      outputChannel.appendLine("AI Code Agents: Agents already installed. ✓");
+    }
   }
 
   runner = new AgentRunner(outputChannel, context);
@@ -120,13 +129,21 @@ vscode.commands.executeCommand("workbench.action.openSettings", "AI Code Agents"
     vscode.commands.registerCommand("aiCodeAgents.reviewFile", async () => {
       const file = vscode.window.activeTextEditor?.document.uri.fsPath;
       if (!file) { vscode.window.showWarningMessage("Open a file first."); return; }
-      await runAgent("code-reviewer-agent", [`--path=${file}`], panelProvider);
+      await runAgent("code-reviewer-agent", [`--path="${file}"`], panelProvider);
     }),
     vscode.commands.registerCommand("aiCodeAgents.reviewWorkspace", async () => {
       await runAgent("code-reviewer-agent", [], panelProvider);
     }),
     vscode.commands.registerCommand("aiCodeAgents.diffReview", async () => {
       await runAgent("diff-reviewer", [], panelProvider);
+    }),
+    vscode.commands.registerCommand("aiCodeAgents.securityAudit", async () => {
+      await runAgent("security-agent", [], panelProvider);
+    }),
+    vscode.commands.registerCommand("aiCodeAgents.securityAuditFile", async () => {
+      const file = vscode.window.activeTextEditor?.document.uri.fsPath;
+      if (!file) { vscode.window.showWarningMessage("Open a file first."); return; }
+      await runAgent("security-agent", [`--path="${file}"`], panelProvider);
     }),
     vscode.commands.registerCommand("aiCodeAgents.taskPlan", async () => {
       await runAgent("tasker-agent", ["--dry-run"], panelProvider);
@@ -137,7 +154,7 @@ vscode.commands.executeCommand("workbench.action.openSettings", "AI Code Agents"
     vscode.commands.registerCommand("aiCodeAgents.fixFile", async () => {
       const file = vscode.window.activeTextEditor?.document.uri.fsPath;
       if (!file) { vscode.window.showWarningMessage("Open a file first."); return; }
-      await runAgent("fixer-agent", ["--apply", "--learn", `--path=${file}`], panelProvider);
+      await runAgent("fixer-agent", ["--apply", "--learn", `--path="${file}"`], panelProvider);
     }),
     vscode.commands.registerCommand("aiCodeAgents.fixFileWithPreview", async () => {
       const file = vscode.window.activeTextEditor?.document.uri.fsPath;

@@ -2,6 +2,7 @@ export type AgentName =
   | "ai-scanner"
   | "code-reviewer-agent"
   | "diff-reviewer"
+  | "security-agent"
   | "tasker-agent"
   | "fixer-agent"
   | "test-agent"
@@ -9,7 +10,7 @@ export type AgentName =
   | "orchestrator"
   | "learn-agent";
 
-export type AgentCategory = "scan" | "review" | "fix" | "test" | "commit" | "pipeline";
+export type AgentCategory = "scan" | "review" | "security" | "fix" | "test" | "commit" | "pipeline";
 
 export interface AgentDef {
   cli: AgentName;
@@ -23,8 +24,9 @@ export interface AgentDef {
 export const ALL_AGENTS: Record<AgentName, AgentDef> = {
   "ai-scanner":          { cli: "ai-scanner",          label: "Scan (local)",         icon: "🔍", category: "scan",    needsApiKey: false, defaultArgs: [] },
   "code-reviewer-agent": { cli: "code-reviewer-agent", label: "Review Workspace",     icon: "🔬", category: "review",  needsApiKey: true,  defaultArgs: [] },
-  "diff-reviewer":       { cli: "diff-reviewer",       label: "Diff Review (fast)",   icon: "📝", category: "review",  needsApiKey: true,  defaultArgs: [] },
-  "tasker-agent":        { cli: "tasker-agent",        label: "Plan Tasks",           icon: "📋", category: "review",  needsApiKey: false, defaultArgs: ["--dry-run"] },
+  "diff-reviewer":       { cli: "diff-reviewer",       label: "Diff Review (fast)",   icon: "📝", category: "review",   needsApiKey: true,  defaultArgs: [] },
+  "security-agent":      { cli: "security-agent",      label: "Security Audit",       icon: "🛡️", category: "security", needsApiKey: true,  defaultArgs: [] },
+  "tasker-agent":        { cli: "tasker-agent",        label: "Plan Tasks",           icon: "📋", category: "review",   needsApiKey: false, defaultArgs: ["--dry-run"] },
   "fixer-agent":         { cli: "fixer-agent",          label: "Fix All Issues",       icon: "🔧", category: "fix",     needsApiKey: true,  defaultArgs: ["--apply"] },
   "test-agent":          { cli: "test-agent",           label: "Generate Tests",       icon: "🧪", category: "test",    needsApiKey: true,  defaultArgs: ["--apply"] },
   "commit-agent":        { cli: "commit-agent",         label: "Generate Commit",      icon: "💬", category: "commit",  needsApiKey: true,  defaultArgs: ["--staged"] },

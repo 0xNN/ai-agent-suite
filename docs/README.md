@@ -5,7 +5,7 @@ Suite of CLI agents + VS Code extension for AI-assisted code review, task planni
 ```
 ═══ orchestrator ════════════       ═══ VS Code Extension ════
 ║                            ║       ┌──────────────────────┐
-scan ──▶ review ──▶ task ──▶ fix ──▶ test ──▶ commit        │ Sidebar · Problems   │
+scan ──▶ security ──▶ review ──▶ task ──▶ fix ──▶ test ──▶ commit        │ Sidebar · Problems   │
          ▲        ▲   │       ▲       │                      │ Ctrl+Shift+R/D/X/C  │
          │        │ decide │     apply │                     │ Task list · Fix Sel. │
          │  diff  └─────────┘          └── generate tests     │ Animated spinner     │
@@ -176,6 +176,7 @@ code --install-extension ai-code-agents-0.1.0.vsix
 |---|---|---|---|---|
 | **scan-agent** | `ai-scanner` | Local deterministic code scan | No | No |
 | **code-reviewer-agent** | `code-reviewer-agent` | AI code review → Markdown report | Yes | Yes |
+| **security-agent** | `security-agent` | AI security audit (secrets, injection, XSS, auth, SSRF, supply chain) → Markdown report | Yes | Yes |
 | **tasker-agent** | `tasker-agent` | Review report → prioritized task plan | Optional | Only for LLM mode |
 | **fixer-agent** | `fixer-agent` | Task/report → auto-fix code | Yes | Yes |
 | **test-agent** | `test-agent` | Review findings → generate unit tests | Yes | Yes |
@@ -194,6 +195,7 @@ code --install-extension ai-code-agents-0.1.0.vsix
 # From each agent directory
 cd scan-agent              && npm install -g .
 cd code-reviewer-agent     && npm install -g .
+cd security-agent          && npm install -g .
 cd tasker-agent            && npm install -g .
 cd fixer-agent             && npm install -g .
 cd test-agent              && npm install -g .

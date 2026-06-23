@@ -1,0 +1,16 @@
+{
+  "name": "security-agent",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "security-agent": "./scripts/ai-security-agent.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "node scripts/ai-security-agent.mjs",
+    "dry-run": "node scripts/ai-security-agent.mjs --dry-run"
+  }
+}

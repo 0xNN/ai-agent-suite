@@ -374,6 +374,8 @@ body {
   <div class="flow" id="flowBar">
   <span class="step" data-step="scan">Scan</span>
   <span class="sep">→</span>
+  <span class="step" data-step="security">Security</span>
+  <span class="sep">→</span>
   <span class="step" data-step="review">Review</span>
   <span class="sep">→</span>
   <span class="step" data-step="plan">Plan</span>
@@ -394,6 +396,15 @@ body {
         <button class="btn btn-outline" style="flex:1" onclick="run('code-reviewer-agent')"><span class="btn-icon">🔬</span> Review</button>
         <button class="btn btn-outline" style="flex:1" onclick="run('diff-reviewer')"><span class="btn-icon">📝</span> Diff</button>
       </div>
+    </div>
+  </div>
+</div>
+
+<div class="group">
+  <div class="group-header"><span>🛡️</span> Security</div>
+  <div class="group-body">
+    <div class="actions">
+      <button class="btn btn-full" onclick="run('security-agent')"><span class="btn-icon">🛡️</span> Security Audit</button>
     </div>
   </div>
 </div>
@@ -479,16 +490,17 @@ function setRunning(state) {
 
 function setFlowStep(agentName) {
   document.querySelectorAll('.flow .step').forEach(s => s.classList.remove('active'));
-  const map = {
-    'ai-scanner': 'scan',
-    'code-reviewer-agent': 'review',
-    'diff-reviewer': 'review',
-    'tasker-agent': 'plan',
-    'fixer-agent': 'fix',
-    'test-agent': 'test',
-    'commit-agent': 'commit',
-    'orchestrator': 'scan',
-  };
+    const map = {
+      'ai-scanner': 'scan',
+      'code-reviewer-agent': 'review',
+      'diff-reviewer': 'review',
+      'security-agent': 'security',
+      'tasker-agent': 'plan',
+      'fixer-agent': 'fix',
+      'test-agent': 'test',
+      'commit-agent': 'commit',
+      'orchestrator': 'scan',
+    };
   const step = map[agentName];
   if (step) document.querySelector('.flow .step[data-step="' + step + '"]')?.classList.add('active');
 }

@@ -19,9 +19,13 @@ export class DiagnosticsProvider {
   }
 
   async loadFromWorkspace(workspaceRoot: string): Promise<number> {
-    const reportFile = this.findLatestReport(workspaceRoot, "ai-review-report");
-    if (!reportFile) return 0;
-    return this.loadFromFile(reportFile, workspaceRoot);
+    const reviewReport = this.findLatestReport(workspaceRoot, "ai-review-report");
+    const securityReport = this.findLatestReport(workspaceRoot, "ai-security-report");
+
+    let count = 0;
+    if (reviewReport) count += this.loadFromFile(reviewReport, workspaceRoot);
+    if (securityReport) count += this.loadFromFile(securityReport, workspaceRoot);
+    return count;
   }
 
   loadFromFile(reportFile: string, workspaceRoot: string): number {

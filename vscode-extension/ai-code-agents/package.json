@@ -33,6 +33,8 @@
       { "command": "aiCodeAgents.reviewFile",    "title": "AI Agents: Review This File" },
       { "command": "aiCodeAgents.reviewWorkspace","title": "AI Agents: Review Workspace" },
       { "command": "aiCodeAgents.diffReview",    "title": "AI Agents: Diff Review (changed only)" },
+      { "command": "aiCodeAgents.securityAudit", "title": "AI Agents: Security Audit" },
+      { "command": "aiCodeAgents.securityAuditFile", "title": "AI Agents: Security Audit This File" },
       { "command": "aiCodeAgents.taskPlan",      "title": "AI Agents: Plan Tasks" },
       { "command": "aiCodeAgents.fixAll",        "title": "AI Agents: Fix All Issues" },
       { "command": "aiCodeAgents.fixFile",       "title": "AI Agents: Fix This File" },
@@ -48,12 +50,14 @@
     "menus": {
       "editor/context": [
         { "command": "aiCodeAgents.scan",          "group": "aiCodeAgents@1", "when": "editorIsOpen" },
-        { "command": "aiCodeAgents.reviewFile",    "group": "aiCodeAgents@2", "when": "editorIsOpen" },
+        { "command": "aiCodeAgents.reviewFile",       "group": "aiCodeAgents@2", "when": "editorIsOpen" },
+        { "command": "aiCodeAgents.securityAuditFile","group": "aiCodeAgents@3", "when": "editorIsOpen" },
         { "command": "aiCodeAgents.fixFile",       "group": "aiCodeAgents@3", "when": "editorIsOpen" },
         { "command": "aiCodeAgents.fixFileWithPreview", "group": "aiCodeAgents@4", "when": "editorIsOpen" }
       ],
       "explorer/context": [
-        { "command": "aiCodeAgents.reviewWorkspace", "group": "aiCodeAgents@1" },
+        { "command": "aiCodeAgents.reviewWorkspace",  "group": "aiCodeAgents@1" },
+        { "command": "aiCodeAgents.securityAudit",    "group": "aiCodeAgents@2" },
         { "command": "aiCodeAgents.scan",            "group": "aiCodeAgents@2" },
         { "command": "aiCodeAgents.diffReview",      "group": "aiCodeAgents@3" }
       ]
@@ -64,7 +68,8 @@
       { "command": "aiCodeAgents.fixAll",          "key": "ctrl+shift+x", "mac": "cmd+shift+x", "when": "editorFocus" },
       { "command": "aiCodeAgents.fixFileWithPreview", "key": "ctrl+shift+p", "mac": "cmd+shift+p", "when": "editorFocus" },
       { "command": "aiCodeAgents.cancel",          "key": "ctrl+shift+escape", "mac": "cmd+shift+escape", "when": "editorFocus" },
-      { "command": "aiCodeAgents.generateCommit",  "key": "ctrl+shift+c", "mac": "cmd+shift+c", "when": "editorFocus" }
+      { "command": "aiCodeAgents.generateCommit",  "key": "ctrl+shift+c", "mac": "cmd+shift+c", "when": "editorFocus" },
+      { "command": "aiCodeAgents.securityAudit",   "key": "ctrl+shift+s", "mac": "cmd+shift+s", "when": "editorFocus" }
     ],
     "configuration": {
       "title": "AI Code Agents",
@@ -104,6 +109,7 @@
           "markdownDescription": "Per-agent model/provider overrides. Key = agent name (e.g. `code-reviewer-agent`, `fixer-agent`), value = `{ provider, model, baseUrl }`. Overrides global settings for specific agents.\n\nExample:\n```json\n{\n  \"code-reviewer-agent\": { \"provider\": \"openai\", \"model\": \"gpt-4o\" },\n  \"fixer-agent\": { \"provider\": \"nvidia\", \"model\": \"deepseek-ai/deepseek-v4-flash\" }\n}\n```",
           "properties": {
             "code-reviewer-agent": { "type": "object", "default": {} },
+            "security-agent": { "type": "object", "default": {} },
             "fixer-agent": { "type": "object", "default": {} },
             "diff-reviewer": { "type": "object", "default": {} },
             "test-agent": { "type": "object", "default": {} },
@@ -168,10 +174,9 @@
     }
   },
   "scripts": {
-    "bundle-agents": "node scripts/bundle-agents.js",
-    "compile": "npm run bundle-agents && tsc -p ./",
+    "compile": "tsc -p ./",
     "watch": "tsc -watch -p ./",
-    "package": "npm run compile && npx @vscode/vsce package"
+    "package": "npx @vscode/vsce package"
   },
   "devDependencies": {
     "@types/vscode": "^1.85.0",
