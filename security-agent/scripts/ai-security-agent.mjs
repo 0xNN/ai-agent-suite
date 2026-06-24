@@ -191,14 +191,34 @@ async function loadJson(filePath, fallback) {
 
 async function readSkill() {
   const projectSkillPath = path.join(root, "skills", "SKILL.md");
-  const bundledSkillPath = path.join(agentRoot, "skills", "SKILL.md");
-  const skillContent = existsSync(projectSkillPath)
-    ? await readFile(projectSkillPath, "utf8")
-    : await readFile(bundledSkillPath, "utf8");
+  if (existsSync(projectSkillPath)) {
+    const content = await readFile(projectSkillPath, "utf8");
+    return prependLang(content);
+  }
+
+  // auto-detect language and load matching security skill
+  const detectedLang = projectLangArg ?? await detectProjectLanguage(root);
+  const langSkillMap = {
+    dart:       "dart-code-reviewer.md",
+    go:         "go-code-reviewer.md",
+    python:     "python-code-reviewer.md",
+    java:       "java-code-reviewer.md",
+    javascript: "SKILL.md",
+  };
+  const skillFile = langSkillMap[detectedLang] ?? "SKILL.md";
+  const bundledSkillPath = path.join(agentRoot, "skills", skillFile);
+  const fallbackPath = path.join(agentRoot, "skills", "SKILL.md");
+
+  const finalPath = existsSync(bundledSkillPath) ? bundledSkillPath : fallbackPath;
+  const content = await readFile(finalPath, "utf8");
+  return prependLang(content);
+}
+
+function prependLang(content) {
   const langInstruction = lang === "id"
     ? "**CRITICAL INSTRUCTION: You MUST write the ENTIRE security review output in Bahasa Indonesia. No English whatsoever.**\n\n---\n\n"
     : "";
-  return langInstruction + skillContent;
+  return langInstruction + content;
 }
 
 async function collectFiles(baseDir, reviewConfig) {
