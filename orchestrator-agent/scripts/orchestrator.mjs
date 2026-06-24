@@ -1,26 +1,9 @@
 #!/usr/bin/env node
 import { execSync } from "node:child_process";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
 import { createInterface } from "node:readline";
 import { existsSync, readFileSync, writeFileSync, readdirSync } from "node:fs";
 import process from "node:process";
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const agentBase = path.resolve(__dirname, "..", "..");
-
-const agentScripts = {
-  scan:   path.join(agentBase, "scan-agent", "scripts", "ai-scanner.mjs"),
-  review: path.join(agentBase, "code-reviewer-agent", "scripts", "ai-code-reviewer.mjs"),
-  task:   path.join(agentBase, "tasker-agent", "scripts", "ai-task-generator.mjs"),
-  fix:    path.join(agentBase, "fixer-agent", "scripts", "ai-fixer.mjs"),
-  test:   path.join(agentBase, "test-agent", "scripts", "ai-test-agent.mjs"),
-};
-
-function runScript(scriptPath, args) {
-  const cmd = `node "${scriptPath}" ${args}`;
-  execSync(cmd, { cwd: root, stdio: ciMode ? "pipe" : "inherit" });
-}
 
 const pathArg = process.argv.find((arg) => arg.startsWith("--path="))?.slice("--path=".length);
 const root = pathArg ? path.resolve(pathArg) : process.cwd();
@@ -32,11 +15,12 @@ const ciMode = process.argv.includes("--ci");
 const skipSet = new Set(skipArg ? skipArg.split(",").map((s) => s.trim().toLowerCase()) : []);
 
 const steps = [
-  { name: "scan",   run: () => runScript(agentScripts.scan, "") },
-  { name: "review", run: () => runScript(agentScripts.review, "") },
-  { name: "task",   run: () => runScript(agentScripts.task, "") },
-  { name: "fix",    run: () => runScript(agentScripts.fix, `${taskSelect ? `--task=${taskSelect}` : ""} --apply`) },
-  { name: "test",   run: () => runScript(agentScripts.test, "--apply") },
+  { name: "scan",     cli: "ai-scanner" },
+  { name: "security", cli: "security-agent" },
+  { name: "review",   cli: "code-reviewer-agent" },
+  { name: "task",     cli: "tasker-agent" },
+  { name: "fix",      cli: `tasker-agent ${taskSelect ? `--task=${taskSelect}` : ""} --apply` },
+  { name: "test",     cli: "test-agent --apply" },
 ];
 
 function say(msg) {
@@ -61,7 +45,7 @@ for (const step of steps) {
   }
 
   if (rl) {
-    const answer = await ask(rl, `\n  ? Run "${step.name}"? (Y/n) `);
+    const answer = await ask(rl, `\n  ? Run "${step.cli}"? (Y/n) `);
     if (answer === "n" || answer === "no") {
       say(`  ⏭ Skipped`);
       continue;
@@ -71,7 +55,7 @@ for (const step of steps) {
   say(`\n── ${step.name} ──────────────────────────────────\n`);
 
   try {
-    step.run();
+    execSync(step.cli, { cwd: root, stdio: ciMode ? "pipe" : "inherit", shell: true });
     say(`  ✓ ${step.name} passed`);
   } catch {
     sayErr(`  ✗ "${step.name}" failed. Stopping pipeline.`);
@@ -85,15 +69,17 @@ if (rl) rl.close();
 // ─── CI Summary ───
 if (ciMode) {
   const reportFiles = findReports(root, "ai-review-report");
+  const securityFiles = findReports(root, "ai-security-report");
   const scanFiles = findReports(root, "ai-scan-report");
-  const results = { passed: !hasFailures, scan: 0, review: 0 };
+  const results = { passed: !hasFailures, scan: 0, review: 0, security: 0 };
 
-  for (const rf of [...reportFiles, ...scanFiles]) {
+  for (const rf of [...reportFiles, ...scanFiles, ...securityFiles]) {
     try {
       const content = readFileSync(rf, "utf8");
       const findingLines = content.split("\n").filter((l) => l.trim().startsWith("|") && !l.includes("---") && !l.includes("Severity"));
       const count = findingLines.length;
-      if (rf.includes("review")) results.review += count;
+      if (rf.includes("security")) results.security += count;
+      else if (rf.includes("review")) results.review += count;
       else results.scan += count;
     } catch {}
   }
@@ -102,11 +88,11 @@ if (ciMode) {
   writeFileSync(summaryPath, JSON.stringify(results, null, 2) + "\n", "utf8");
   console.log(JSON.stringify(results));
 
-  if (results.scan > 0 || results.review > 0) {
-    sayErr(`\n✗ ${results.review} review finding(s), ${results.scan} scan finding(s) found.`);
+  if (results.scan > 0 || results.review > 0 || results.security > 0) {
+    sayErr(`\n✗ ${results.review} review finding(s), ${results.security} security finding(s), ${results.scan} scan finding(s) found.`);
   }
 
-  process.exit(results.scan > 0 || results.review > 0 ? 1 : 0);
+  process.exit(results.scan > 0 || results.review > 0 || results.security > 0 ? 1 : 0);
 }
 
 if (hasFailures) process.exit(1);
