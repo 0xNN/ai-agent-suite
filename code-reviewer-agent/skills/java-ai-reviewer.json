@@ -1,0 +1,13 @@
+{
+  "include": [
+    "**/*.java",
+    "**/*.kt",
+    "pom.xml",
+    "build.gradle",
+    "build.gradle.kts"
+  ],
+  "exclude": [
+    ".git/**", "build/**", "target/**",
+    "**/*Test.java", "**/*Tests.java", "**/*Spec.kt"
+  ]
+}

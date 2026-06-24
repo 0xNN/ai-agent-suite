@@ -1,0 +1,11 @@
+{
+  "include": [
+    "**/*.go",
+    "go.mod",
+    "go.sum"
+  ],
+  "exclude": [
+    "vendor/**", ".git/**",
+    "**/*_test.go", "*.pb.go"
+  ]
+}

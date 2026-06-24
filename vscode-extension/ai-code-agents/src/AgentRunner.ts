@@ -87,6 +87,11 @@ export class AgentRunner {
       finalArgs.push("--lang=id");
     }
 
+    const projectLang = config.get<string>("projectLanguage") ?? "auto";
+    if (projectLang !== "auto" && (agent === "code-reviewer-agent" || agent === "security-agent" || agent === "test-agent")) {
+      finalArgs.push(`--project-lang=${projectLang}`);
+    }
+
     if (stream && (agent === "code-reviewer-agent" || agent === "diff-reviewer")) {
       finalArgs.push("--stream");
     }

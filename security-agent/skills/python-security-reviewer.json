@@ -1,0 +1,14 @@
+{
+  "include": [
+    "**/*.py",
+    "requirements.txt",
+    "pyproject.toml",
+    "setup.py",
+    "setup.cfg"
+  ],
+  "exclude": [
+    ".git/**", "venv/**", ".venv/**",
+    "__pycache__/**", "dist/**", "build/**",
+    "**/*_test.py", "**/test_*.py", "tests/**"
+  ]
+}

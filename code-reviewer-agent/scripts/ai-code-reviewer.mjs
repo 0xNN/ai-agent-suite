@@ -19,6 +19,7 @@ const root = pathArg ? path.resolve(pathArg) : process.cwd();
 
 const langArg = process.argv.find((arg) => arg.startsWith("--lang="))?.slice("--lang=".length);
 const lang = (langArg === 'id' || langArg === 'en') ? langArg : 'en';
+const projectLangArg = process.argv.find((arg) => arg.startsWith("--project-lang="))?.slice("--project-lang=".length);
 const agentRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const dryRun = process.argv.includes("--dry-run");
 const printFiles = process.argv.includes("--print-files");
@@ -31,12 +32,31 @@ loadDotEnv(path.join(root, ".env"), { override: true });
 
 let config = await loadJson(path.join(root, ".ai-reviewer.json"), null);
 if (!config) {
-  config = await loadJson(path.join(agentRoot, ".ai-reviewer.json"), {
+  // use --project-lang arg or auto-detect
+  const detectedLang = projectLangArg ?? await detectProjectLanguage(root);
+  const langConfigMap = {
+    dart:       "flutter-ai-reviewer.json",
+    go:         "go-ai-reviewer.json",
+    python:     "python-ai-reviewer.json",
+    java:       "java-ai-reviewer.json",
+    javascript: null, // use default
+  };
+  const configFile = detectedLang ? langConfigMap[detectedLang] : null;
+  const langConfig = configFile
+    ? await loadJson(path.join(agentRoot, "skills", configFile), null)
+    : null;
+
+  config = langConfig ?? {
     include: ["src/**/*.js", "src/**/*.jsx", "src/**/*.ts", "src/**/*.tsx", "package.json", "tsconfig.json"],
     exclude: ["node_modules/**", "dist/**", "build/**", "coverage/**", ".git/**"]
-  });
-  console.error(`[config] No .ai-reviewer.json found in project root (${root}). Using agent default.` +
-    `\n  To review Dart/Go files, copy skills/<lang>-ai-reviewer.json to your project root as .ai-reviewer.json`);
+  };
+
+  if (detectedLang && langConfig) {
+    console.error(`[config] Detected language: ${detectedLang}. Using ${configFile}.`);
+  } else {
+    console.error(`[config] No .ai-reviewer.json found in project root (${root}). Using agent default.` +
+      `\n  To review Dart/Go files, copy skills/<lang>-ai-reviewer.json to your project root as .ai-reviewer.json`);
+  }
 }
 
 const maxFiles = Number(process.env.CODE_REVIEW_MAX_FILES ?? 80);
@@ -604,4 +624,20 @@ function toPosix(value) {
 function fail(message) {
   console.error(message);
   process.exit(1);
+}
+
+async function detectProjectLanguage(dir) {
+  const markers = [
+    { file: "pubspec.yaml",     lang: "dart"   },
+    { file: "go.mod",           lang: "go"     },
+    { file: "requirements.txt", lang: "python" },
+    { file: "pyproject.toml",   lang: "python" },
+    { file: "pom.xml",          lang: "java"   },
+    { file: "build.gradle",     lang: "java"   },
+    { file: "build.gradle.kts", lang: "java"   },
+  ];
+  for (const { file, lang } of markers) {
+    if (existsSync(path.join(dir, file))) return lang;
+  }
+  return null;
 }

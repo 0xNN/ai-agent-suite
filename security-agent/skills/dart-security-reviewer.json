@@ -1,0 +1,11 @@
+{
+  "include": [
+    "**/*.dart",
+    "pubspec.yaml"
+  ],
+  "exclude": [
+    ".dart_tool/**", "build/**", ".git/**",
+    "**/*.g.dart", "**/*.freezed.dart", "**/*.gr.dart",
+    "coverage/**", "test/**"
+  ]
+}
