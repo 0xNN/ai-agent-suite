@@ -19,6 +19,7 @@ const langArg = process.argv.find((arg) => arg.startsWith("--lang="))?.slice("--
 const lang = (langArg === "id" || langArg === "en") ? langArg : "en";
 const shellEnvKeys = new Set(Object.keys(process.env));
 const tasksFilename = "ai-tasks.json";
+const SEVERITY_RANK = { critical: 4, high: 3, medium: 2, low: 1 };
 
 loadDotEnv(path.resolve(agentRoot, "..", "code-reviewer-agent", ".env"));
 loadDotEnv(path.join(agentRoot, ".env"), { override: true });
@@ -166,8 +167,6 @@ function parseFindings(reportText, source = "review") {
 function stripHtml(text) {
   return text.replace(/<[^>]+>/g, "").trim();
 }
-
-const SEVERITY_RANK = { critical: 4, high: 3, medium: 2, low: 1 };
 
 function enforceSeverity(tasks, findings) {
   for (const task of tasks) {
