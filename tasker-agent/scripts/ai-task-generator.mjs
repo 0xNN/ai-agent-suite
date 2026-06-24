@@ -163,25 +163,40 @@ const SEVERITY_RANK = { critical: 4, high: 3, medium: 2, low: 1 };
 
 function enforceSeverity(tasks, findings) {
   for (const task of tasks) {
-    let maxRank = 0;
+    let maxRank = SEVERITY_RANK[task.priority] ?? 0;
     let maxSeverity = task.priority;
 
+    // Match by finding index (number coerce to handle LLM string output)
     for (const fi of task.findings) {
-      const finding = findings.find((f) => f.originalIndex === fi);
-      if (!finding) continue;
-      const rank = SEVERITY_RANK[finding.severity] ?? 0;
-      if (rank > maxRank) {
-        maxRank = rank;
-        maxSeverity = finding.severity;
+      const fiNum = Number(fi);
+      const finding = findings.find((f) => f.originalIndex === fiNum);
+      if (finding) {
+        const rank = SEVERITY_RANK[finding.severity] ?? 0;
+        if (rank > maxRank) { maxRank = rank; maxSeverity = finding.severity; }
       }
     }
 
-    if (maxRank > (SEVERITY_RANK[task.priority] ?? 0)) {
-      console.warn(`  ⚠ Task #${task.id}: priority corrected from "${task.priority}" → "${maxSeverity}" (matches finding severity)`);
+    // Fallback: match by file path
+    if (maxSeverity === task.priority) {
+      for (const taskFile of (task.files ?? [])) {
+        const matching = findings.filter((f) =>
+          toPosix(f.file).endsWith(toPosix(taskFile)) || toPosix(taskFile).endsWith(toPosix(f.file))
+        );
+        for (const f of matching) {
+          const rank = SEVERITY_RANK[f.severity] ?? 0;
+          if (rank > maxRank) { maxRank = rank; maxSeverity = f.severity; }
+        }
+      }
+    }
+
+    if (maxSeverity !== task.priority) {
+      console.warn(`  ⚠ Task #${task.id}: priority corrected "${task.priority}" → "${maxSeverity}"`);
       task.priority = maxSeverity;
     }
   }
 }
+
+function toPosix(v) { return v ? v.replace(/\\/g, "/") : ""; }
 
 function generateLocalTasks(findings) {
   const fileGroups = new Map();
