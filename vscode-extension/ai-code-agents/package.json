@@ -2,7 +2,7 @@
   "name": "ai-code-agents",
   "displayName": "AI Code Agents",
   "description": "AI-powered code scan, review, fix, test, commit — all 8 agents inside VS Code",
-  "version": "0.3.3",
+  "version": "0.3.4",
   "publisher": "ai-agent-suite",
   "license": "MIT",
   "engines": { "vscode": "^1.85.0" },
