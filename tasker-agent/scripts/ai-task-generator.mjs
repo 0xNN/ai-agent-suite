@@ -8,7 +8,6 @@ import { fileURLToPath } from "node:url";
 import { Loader } from "./_loader.mjs";
 
 const agentRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const agentBase = path.resolve(agentRoot, "..");
 const pathArg = process.argv.find((arg) => arg.startsWith("--path="))?.slice("--path=".length);
 const root = pathArg ? path.resolve(pathArg) : process.cwd();
 const dryRun = process.argv.includes("--dry-run");
@@ -29,18 +28,27 @@ const reportFile = reportArg
   ? path.resolve(root, reportArg)
   : await findLatestReport(root);
 
-if (!reportFile || !existsSync(reportFile)) {
-  console.log("Report file not found:", reportArg ?? "ai-review-report-*.md in " + root);
+const securityReportFile = await findLatestSecurityReport(root);
+
+if ((!reportFile || !existsSync(reportFile)) && (!securityReportFile || !existsSync(securityReportFile))) {
+  console.log("Report files not found:", reportArg ?? "ai-review-report-*.md or ai-security-report-*.md in " + root);
   process.exit(0);
 }
 
-console.log("Found report:", path.relative(root, reportFile));
+let findings = [];
 
-const report = await readFile(reportFile, "utf8");
-const findings = parseFindings(report);
+if (reportFile && existsSync(reportFile)) {
+  console.log("Found review report:", path.relative(root, reportFile));
+  findings.push(...parseFindings(await readFile(reportFile, "utf8"), "review"));
+}
+
+if (securityReportFile && existsSync(securityReportFile)) {
+  console.log("Found security report:", path.relative(root, securityReportFile));
+  findings.push(...parseFindings(await readFile(securityReportFile, "utf8"), "security"));
+}
 
 if (findings.length === 0) {
-  console.log("No findings found in the report.");
+  console.log("No findings found in any report.");
   process.exit(0);
 }
 
@@ -118,7 +126,7 @@ if (dryRun && !selectedIds) {
   process.exit(0);
 }
 
-function parseFindings(reportText) {
+function parseFindings(reportText, source = "review") {
   const lines = reportText.split(/\r?\n/);
   const findings = [];
   let inTable = false;
@@ -133,7 +141,7 @@ function parseFindings(reportText) {
     if (cells.length < 6) continue;
 
     const severity = cells[0].toLowerCase();
-    const category = cells[1];
+    const category = source === "security" ? `[SECURITY] ${cells[1]}` : cells[1];
     const file = cells[2].replace(/^`(.*)`$/, "$1").replace(/^`|`$/g, "").trim();
     const linesRaw = cells[3].replace(/^`|`$/g, "").trim();
     const issue = cells[4];
@@ -325,15 +333,15 @@ async function runFixerForTasks(tasks, contextFindings) {
       await writeFile(tempReport, reportContent, "utf8");
 
       try {
-        const fixerScript = path.join(agentBase, "fixer-agent", "scripts", "ai-fixer.mjs");
-        execSync(`node "${fixerScript}" --apply --report=.tasker-temp-report.md --path=${root}`, {
+        execSync(`fixer-agent --apply --report=".tasker-temp-report.md" --path="${root}"`, {
           stdio: "inherit",
+          shell: true,
         });
         console.log(`  Generating tests for ${file}...`);
         try {
-          const testScript = path.join(agentBase, "test-agent", "scripts", "ai-test-agent.mjs");
-          execSync(`node "${testScript}" --apply --report=.tasker-temp-report.md --path=${root}`, {
+          execSync(`test-agent --apply --report=".tasker-temp-report.md" --path="${root}"`, {
             stdio: "inherit",
+            shell: true,
           });
         } catch {
           console.warn(`  [!] Test generation skipped for ${file} (test-agent not installed or failed)`);
@@ -371,17 +379,19 @@ function buildMinimalReport(fileFindings) {
 
 async function findLatestReport(baseDir) {
   let entries;
-  try {
-    entries = await readdir(baseDir);
-  } catch {
-    return null;
-  }
-
+  try { entries = await readdir(baseDir); } catch { return null; }
   const reports = entries
     .filter((f) => /^ai-review-report-\d{4}-\d{2}-\d{2}T.*\.md$/.test(f))
-    .sort()
-    .reverse();
+    .sort().reverse();
+  return reports.length > 0 ? path.join(baseDir, reports[0]) : null;
+}
 
+async function findLatestSecurityReport(baseDir) {
+  let entries;
+  try { entries = await readdir(baseDir); } catch { return null; }
+  const reports = entries
+    .filter((f) => /^ai-security-report-\d{4}-\d{2}-\d{2}T.*\.md$/.test(f))
+    .sort().reverse();
   return reports.length > 0 ? path.join(baseDir, reports[0]) : null;
 }
 
