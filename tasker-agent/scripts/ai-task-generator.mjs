@@ -92,11 +92,13 @@ if (applyFixes && existingData?.tasks) {
   tasks = existingData;
 } else if (dryRun && !selectedIds) {
   tasks = generateLocalTasks(pendingFindings);
+  enforceSeverity(tasks.tasks, pendingFindings);
 } else {
   const loader = new Loader("task");
   loader.start(`${pendingFindings.length} findings`);
   tasks = await callLLM({ apiKey, baseUrl, model, instructions: skill, findings: pendingFindings });
   loader.stop();
+  // enforceSeverity already called inside callLLM
 }
 
 const taskFile = path.join(root, tasksFilename);
@@ -224,7 +226,8 @@ function generateLocalTasks(findings) {
     for (const [category, catFindings] of byCategory) {
       id++;
       const severities = catFindings.map((f) => f.severity);
-      const priority = severities.includes("high") ? "high"
+      const priority = severities.includes("critical") ? "critical"
+        : severities.includes("high") ? "high"
         : severities.includes("medium") ? "medium"
         : "low";
 
