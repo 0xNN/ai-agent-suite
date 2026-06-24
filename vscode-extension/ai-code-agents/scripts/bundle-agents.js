@@ -10,6 +10,7 @@ const REPO_ROOT = path.resolve(ROOT, "..", "..");
 const AGENT_LIST = [
   "scan-agent", "code-reviewer-agent", "commit-agent", "diff-reviewer-agent",
   "fixer-agent", "learn-agent", "orchestrator-agent", "tasker-agent", "test-agent",
+  "security-agent",
 ];
 
 if (fs.existsSync(AGENTS_DIR)) {
