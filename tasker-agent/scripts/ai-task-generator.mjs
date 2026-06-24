@@ -47,6 +47,12 @@ if (securityReportFile && existsSync(securityReportFile)) {
   findings.push(...parseFindings(await readFile(securityReportFile, "utf8"), "security"));
 }
 
+// Re-assign originalIndex after merging (1-based, sequential)
+findings = findings.map((f, i) => ({ ...f, originalIndex: i + 1 }));
+
+console.log(`Total findings: ${findings.length} (${findings.filter(f => f.severity === "critical").length} critical, ${findings.filter(f => f.severity === "high").length} high)`);
+findings.forEach(f => console.log(`  [${f.originalIndex}] ${f.severity} | ${f.file} | ${f.issue?.substring(0, 60)}`));
+
 if (findings.length === 0) {
   console.log("No findings found in any report.");
   process.exit(0);
@@ -166,7 +172,7 @@ function enforceSeverity(tasks, findings) {
     let maxRank = SEVERITY_RANK[task.priority] ?? 0;
     let maxSeverity = task.priority;
 
-    // Match by finding index (number coerce to handle LLM string output)
+    // Match by finding index
     for (const fi of task.findings) {
       const fiNum = Number(fi);
       const finding = findings.find((f) => f.originalIndex === fiNum);
