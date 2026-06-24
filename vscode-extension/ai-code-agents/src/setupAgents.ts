@@ -80,25 +80,35 @@ export async function installAgents(context: vscode.ExtensionContext): Promise<b
   );
 }
 
+function getBundledAgentDir(context: vscode.ExtensionContext): string {
+  return path.join(context.extensionPath, "agents");
+}
+
 export function resolveAgentScript(agent: string, context: vscode.ExtensionContext): string | null {
-  const agentDir = getAgentDir(context);
   const scriptMap: Record<string, string> = {
-    "ai-scanner": path.join(agentDir, "scan-agent", "scripts", "ai-scanner.mjs"),
-    "scan-agent": path.join(agentDir, "scan-agent", "scripts", "ai-scanner.mjs"),
-    "code-reviewer-agent": path.join(agentDir, "code-reviewer-agent", "scripts", "ai-code-reviewer.mjs"),
-    "commit-agent": path.join(agentDir, "commit-agent", "scripts", "ai-commit-generator.mjs"),
-    "diff-reviewer": path.join(agentDir, "diff-reviewer-agent", "scripts", "ai-diff-reviewer.mjs"),
-    "fixer-agent": path.join(agentDir, "fixer-agent", "scripts", "ai-fixer.mjs"),
-    "learn-agent": path.join(agentDir, "learn-agent", "scripts", "ai-learner.mjs"),
-    "orchestrator": path.join(agentDir, "orchestrator-agent", "scripts", "orchestrator.mjs"),
-    "tasker-agent": path.join(agentDir, "tasker-agent", "scripts", "ai-task-generator.mjs"),
-    "test-agent": path.join(agentDir, "test-agent", "scripts", "ai-test-agent.mjs"),
-    "security-agent": path.join(agentDir, "security-agent", "scripts", "ai-security-agent.mjs"),
+    "ai-scanner": "scan-agent/scripts/ai-scanner.mjs",
+    "scan-agent": "scan-agent/scripts/ai-scanner.mjs",
+    "code-reviewer-agent": "code-reviewer-agent/scripts/ai-code-reviewer.mjs",
+    "commit-agent": "commit-agent/scripts/ai-commit-generator.mjs",
+    "diff-reviewer": "diff-reviewer-agent/scripts/ai-diff-reviewer.mjs",
+    "fixer-agent": "fixer-agent/scripts/ai-fixer.mjs",
+    "learn-agent": "learn-agent/scripts/ai-learner.mjs",
+    "orchestrator": "orchestrator-agent/scripts/orchestrator.mjs",
+    "tasker-agent": "tasker-agent/scripts/ai-task-generator.mjs",
+    "test-agent": "test-agent/scripts/ai-test-agent.mjs",
+    "security-agent": "security-agent/scripts/ai-security-agent.mjs",
   };
 
-  const script = scriptMap[agent];
-  if (script && fs.existsSync(script)) {
-    return script;
-  }
+  const relative = scriptMap[agent];
+  if (!relative) return null;
+
+  // 1. Check bundled agents (inside VSIX)
+  const bundledPath = path.join(getBundledAgentDir(context), relative);
+  if (fs.existsSync(bundledPath)) return bundledPath;
+
+  // 2. Check globally installed agents (globalStorageUri)
+  const globalPath = path.join(getAgentDir(context), relative);
+  if (fs.existsSync(globalPath)) return globalPath;
+
   return null;
 }
