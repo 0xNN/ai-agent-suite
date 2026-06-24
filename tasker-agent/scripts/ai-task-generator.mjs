@@ -159,6 +159,30 @@ function stripHtml(text) {
   return text.replace(/<[^>]+>/g, "").trim();
 }
 
+const SEVERITY_RANK = { critical: 4, high: 3, medium: 2, low: 1 };
+
+function enforceSeverity(tasks, findings) {
+  for (const task of tasks) {
+    let maxRank = 0;
+    let maxSeverity = task.priority;
+
+    for (const fi of task.findings) {
+      const finding = findings.find((f) => f.originalIndex === fi);
+      if (!finding) continue;
+      const rank = SEVERITY_RANK[finding.severity] ?? 0;
+      if (rank > maxRank) {
+        maxRank = rank;
+        maxSeverity = finding.severity;
+      }
+    }
+
+    if (maxRank > (SEVERITY_RANK[task.priority] ?? 0)) {
+      console.warn(`  ⚠ Task #${task.id}: priority corrected from "${task.priority}" → "${maxSeverity}" (matches finding severity)`);
+      task.priority = maxSeverity;
+    }
+  }
+}
+
 function generateLocalTasks(findings) {
   const fileGroups = new Map();
   findings.forEach((f) => {
@@ -221,8 +245,8 @@ async function callLLM({ apiKey, baseUrl, model, instructions, findings }) {
   ).join("\n\n");
 
   const userMessage = lang === "id"
-    ? `Berikut adalah daftar temuan dari code review:\n\n${findingsText}\n\n---\nBuat daftar task berdasarkan temuan di atas. Output JSON sesuai format yang diminta.`
-    : `Here are the code review findings:\n\n${findingsText}\n\n---\nGenerate a task plan from these findings. Output valid JSON matching the required format.`;
+    ? `Berikut adalah daftar temuan dari code review:\n\n${findingsText}\n\n---\nPENTING: Priority task WAJIB sama dengan severity temuan. Jangan pernah downgrade. Critical temuan = critical task. High temuan = high task.\nBuat daftar task berdasarkan temuan di atas. Output JSON sesuai format yang diminta.`
+    : `Here are the code review findings:\n\n${findingsText}\n\n---\nIMPORTANT: Task priority MUST match finding severity. Never downgrade. Critical finding = critical task. High finding = high task.\nGenerate a task plan from these findings. Output valid JSON matching the required format.`;
 
   const endpoint = buildChatCompletionsUrl(baseUrl);
   const response = await fetch(endpoint, {
@@ -259,6 +283,8 @@ async function callLLM({ apiKey, baseUrl, model, instructions, findings }) {
     console.warn("Warning: LLM output did not contain valid task JSON. Using local fallback.");
     return generateLocalTasks(findings);
   }
+
+  enforceSeverity(parsed.tasks, findings);
 
   return parsed;
 }
