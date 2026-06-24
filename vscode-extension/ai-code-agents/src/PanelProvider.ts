@@ -284,6 +284,11 @@ body {
   text-transform: uppercase;
   letter-spacing: 0.03em;
 }
+.badge-critical {
+  background: color-mix(in srgb, #ff0000 25%, transparent);
+  color: #ff4444;
+  font-weight: 700;
+}
 .badge-high {
   background: color-mix(in srgb, var(--vscode-errorForeground) 20%, transparent);
   color: var(--vscode-errorForeground);
@@ -535,7 +540,7 @@ function renderTasks(data) {
 
   list.innerHTML = tasks.map(t => {
     const icon = iconMap[t.type] || '•';
-    const badge = 'badge-' + (t.priority === 'high' ? 'high' : t.priority === 'medium' ? 'medium' : 'low');
+    const badge = 'badge-' + (t.priority === 'critical' ? 'critical' : t.priority === 'high' ? 'high' : t.priority === 'medium' ? 'medium' : 'low');
     const files = (t.files || []).join(', ');
     return \`<div class="task-card" data-id="\${t.id}" onclick="toggle(this)">
       <div class="task-header">
